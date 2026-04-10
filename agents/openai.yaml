@@ -1,0 +1,5 @@
+interface:
+  display_name: "Discordrs Dev"
+  short_description: "Build and explain discordrs 0.4.0 bots, runtimes, docs, and integrations."
+  default_prompt: "Use $discordrs-dev to build, debug, explain, or document a discordrs 0.4.0 gateway runtime, typed interactions endpoint, REST flow, cache manager path, sharding setup, or voice setup."
+
