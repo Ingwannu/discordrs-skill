@@ -1,13 +1,26 @@
-# discordrs 0.4.0 Reference
+# discordrs 1.1.0 Reference
+
+Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility, but the guidance below targets `discordrs 1.1.0`.
 
 ## Version
 
-- Verified workspace version: `0.4.0`
+- Verified workspace version: `1.1.0`
 - Preferred names in new code/docs:
   - `Client` over `BotClient`
   - `RestClient` over `DiscordHttpClient`
   - `EventHandler::handle_event(...)` over per-event legacy callbacks
   - typed `Interaction` variants over raw JSON routing when possible
+- Current public surface notes:
+  - typed `RestClient` methods are the public REST API
+  - builder implementation submodules are private; use `discordrs::builders::{...}` or crate-root re-exports
+  - `ApplicationCommand` uses `id_opt()` / `created_at()` instead of a `DiscordModel` impl
+  - tokenized callback/webhook paths are validated and reject empty or unsafe path segments
+  - bot `Authorization` headers are intentionally omitted for token-authenticated `/webhooks/...` and `/interactions/...` requests
+  - gateway Identify/Resume payloads send the raw Discord token
+  - typed slash/autocomplete input uses `CommandInteractionOption` so nested `value` / `focused` data survives parsing
+  - voice receive provides raw UDP receive, RTP header parsing, AES-GCM/XChaCha RTP-size transport decrypt, and pure-Rust Opus PCM decode
+  - `dave` is an experimental feature that exposes DAVE opcode state and a `davey`/OpenMLS-backed decryptor hook; do not claim full live DAVE support without real Discord voice gateway transition tests
+  - typed REST/event coverage includes polls, subscriptions, entitlements, soundboard, thread details, forum fields, invites, and integrations in addition to the earlier command/message/core surfaces
 
 If the target workspace uses a different version, prefer the workspace and adjust examples to match it.
 
@@ -30,7 +43,8 @@ Cause and effect:
 - If you need cache-backed reads during gateway event handling, add `cache` on top of `gateway`.
 - If you need wait-for-next-message / wait-for-next-click style flows, add `collectors` on top of `gateway`.
 - If you need multi-shard lifecycle control, add `sharding` on top of `gateway`.
-- If you need voice state and handshake plumbing, add `voice`.
+- If you need voice state, voice handshake, transport-decrypted Opus frames, or PCM decode, add `voice`.
+- If you need DAVE/MLS receive hooks, add `voice` plus `dave` and keep interoperability claims tied to live gateway tests.
 
 ## Runtime Relationship Map
 
@@ -71,6 +85,10 @@ Meaning:
 
 - This is the smallest surface when you do not need a live runtime.
 - It is the safest choice for command registration, setup scripts, and HTTP-only tools.
+- Prefer typed public methods. The old raw convenience methods such as `send_message(...)` or `create_interaction_response(...)` are no longer public.
+- Follow-up and interaction webhook helpers intentionally omit bot `Authorization` headers on token-authenticated `/webhooks/...` and `/interactions/...` routes.
+- Tokenized callback/webhook path assembly is hardened: empty or unsafe path segments are rejected instead of being interpolated into request paths.
+- HTTP failures should surface as `DiscordError::Api` or `DiscordError::RateLimit`, not generic model errors.
 
 ## Feature Flags With Cause/Effect
 
@@ -93,8 +111,11 @@ Meaning:
   - Adds shard supervisor/status/control primitives.
   - Choose this when one gateway connection is not enough or the task is about shard lifecycle.
 - `voice`:
-  - Adds voice state management and voice runtime handshake plumbing.
-  - Choose this when the task needs voice state/session setup.
+  - Adds voice state management, voice runtime handshake plumbing, raw UDP receive, RTP-size transport decrypt, and pure-Rust Opus PCM decode.
+  - Choose this when the task needs voice state/session setup, decrypted Opus frames, or interleaved `i16` PCM.
+- `dave`:
+  - Adds experimental DAVE/MLS receive integration hooks and `VoiceDaveyDecryptor`.
+  - Choose this only when the task explicitly needs DAVE frame parsing/decryptor integration. Full live interoperability still needs real voice gateway transition verification.
 
 ## Common Workflows
 
@@ -152,7 +173,8 @@ Use this when the job is setup/migration/admin tooling, not a live bot.
 use async_trait::async_trait;
 use axum::Router;
 use discordrs::{
-    Interaction, InteractionResponse, TypedInteractionHandler, try_typed_interactions_endpoint,
+    Interaction, InteractionContextData, InteractionResponse, TypedInteractionHandler,
+    try_typed_interactions_endpoint,
 };
 
 #[derive(Clone)]
@@ -160,7 +182,11 @@ struct Handler;
 
 #[async_trait]
 impl TypedInteractionHandler for Handler {
-    async fn handle(&self, interaction: Interaction) -> InteractionResponse {
+    async fn handle_typed(
+        &self,
+        _ctx: InteractionContextData,
+        interaction: Interaction,
+    ) -> InteractionResponse {
         match interaction {
             Interaction::ChatInputCommand(cmd) if cmd.data.name.as_deref() == Some("hello") => {
                 InteractionResponse::ChannelMessage(serde_json::json!({ "content": "hello" }))
@@ -203,7 +229,45 @@ Important relationship:
 - `DiscordHttpClient` is still available, but treat it as a compatibility alias for `RestClient`.
 - Legacy convenience callbacks still exist on `EventHandler`, but `handle_event(...)` is the canonical typed entry point.
 - `ready`, `message_create`, and `interaction_create` now receive typed payloads too.
-- The modern public surface is `0.4.0`; examples/docs should prefer that version and naming.
+- The modern public surface is `1.1.0`; examples/docs should prefer that version and naming.
+- Builder implementation submodules are private. Use `discordrs::builders::{...}` or crate-root re-exports.
+- `ApplicationCommand` no longer implements `DiscordModel`. Use `id_opt()` and `created_at()` on the command directly.
+- `CommandInteractionData.options` uses `CommandInteractionOption`, not `ApplicationCommandOption`, so user-entered `value` / `focused` data remains available in typed slash/autocomplete flows.
+- Common replacements:
+  - `RestClient::send_message(...)` -> `send_message(...)` helper or `RestClient::create_message(...)`
+  - `RestClient::edit_message(...)` -> `RestClient::update_message(...)`
+  - `RestClient::create_dm_channel(...)` -> `RestClient::create_dm_channel_typed(...)`
+  - `RestClient::create_interaction_response(...)` -> `RestClient::create_interaction_response_typed(...)`
+  - `RestClient::bulk_overwrite_global_commands(...)` -> `RestClient::bulk_overwrite_global_commands_typed(...)`
+  - typed follow-up helpers may now return a typed `Message`; the raw JSON follow-up container helper still routes through crate-private JSON webhook helpers
+
+## 1.1.0 Release Notes For Agents
+
+- Version source of truth: `Cargo.toml` is `1.1.0`; crates.io package/import remains `discordrs`, while public branding is `discord.rs`.
+- Gateway: `zlib-stream` payloads are buffered as a stream instead of decoded as independent binary frames.
+- HTTP: multipart upload helpers exist for message, webhook, and interaction attachment paths, and webhook message CRUD is typed.
+- Models/events: polls, AutoMod, scheduled events, audit logs, stickers, stage instances, onboarding, templates, invites, integrations, forum fields, soundboard, subscriptions, SKUs, and entitlements have stronger typed coverage.
+- Cache: additional optional cache buckets cover emoji, stickers, voice states, presences, threads, webhooks, scheduled events, AutoMod rules, invites, integrations, soundboard sounds, and monetization entities.
+- Voice: receive now includes raw UDP, RTP parsing, AES-GCM/XChaCha RTP-size transport decrypt, and Opus PCM decode.
+- DAVE: `dave` remains experimental and exposes parser/state/decryptor hooks; do not present it as verified end-to-end Discord voice interoperability without live gateway evidence.
+- Release docs: update root `CHANGELOG.md`, Docsify changelog, README, USAGE, and both skill copies together when the release surface changes.
+
+## Current API Coverage Notes
+
+- Voice receive:
+  - `connect_voice_runtime(...)` returns a runtime handle after voice websocket and UDP setup.
+  - `recv_raw_udp_packet(...)` returns the raw RTP-like UDP packet metadata.
+  - `recv_voice_packet(...)` returns a transport-decrypted Opus frame for non-DAVE sessions.
+  - `VoiceOpusDecoder::discord_default()` decodes received Opus frames to 48 kHz stereo interleaved `i16` PCM.
+  - `recv_voice_packet_with_dave(...)` and `recv_decoded_voice_packet_with_dave(...)` accept a `VoiceDaveFrameDecryptor`.
+  - With `voice,dave`, `VoiceDaveyDecryptor` wraps `davey::DaveSession` for experimental OpenMLS-backed frame decrypt integration.
+- REST/event coverage to prefer in examples:
+  - Polls: `CreatePoll`, `Poll`, `get_poll_answer_voters(...)`, `end_poll(...)`, `MESSAGE_POLL_VOTE_ADD`, `MESSAGE_POLL_VOTE_REMOVE`.
+  - Monetization: `Sku`, `Entitlement`, `Subscription`, entitlement REST helpers, SKU subscription REST helpers, `ENTITLEMENT_*`, `SUBSCRIPTION_*`.
+  - Soundboard: default/guild soundboard REST helpers plus `GUILD_SOUNDBOARD_*` and `SOUNDBOARD_SOUNDS`.
+  - Threads: thread member get/list/add/remove, public/private/joined archived thread lists, and active guild threads.
+  - Forum/media channels: `available_tags`, `applied_tags`, `default_reaction_emoji`, and `default_thread_rate_limit_per_user`.
+  - Integrations/invites: integration list/delete plus `INTEGRATION_*`, invite options, `INVITE_CREATE`, and `INVITE_DELETE`.
 
 ## Pitfalls
 
@@ -212,9 +276,19 @@ Important relationship:
 - Do not use `raw_event` as the default gateway path. Use typed `Event` matching first.
 - Do not use raw interaction routing unless the task specifically needs unknown payload preservation.
 - Do not handwrite button/select JSON if the builder already models the payload.
+- Do not recommend removed raw REST convenience methods in new code or docs.
+- Do not import from deeper builder implementation paths such as `discordrs::builders::modal::*`.
+- Do not prefix gateway Identify/Resume tokens with `Bot `; that prefix is only for HTTP authorization headers.
+- Do not parse typed slash/autocomplete input into command-definition models when the task depends on user-entered `value` or `focused` data.
 - Do not assume follow-up webhook helpers can work with `application_id == 0`.
-- Do not describe `voice` as a full audio stack. It provides state management and handshake/runtime foundations, not a complete encrypted media pipeline.
+- Do not attach bot `Authorization` headers to token-authenticated `/webhooks/...` or `/interactions/...` requests.
+- Do not bypass tokenized webhook/callback path validation with empty or unsafe path segments.
+- Do not describe default `voice` as full DAVE support. It provides state, handshake/runtime, transport decrypt, and PCM decode; DAVE/MLS remains experimental and must be validated against live voice gateway transitions.
 - Treat `MESSAGE_UPDATE` as partial by nature when writing custom cache logic or examples.
+- Do not use `ready.data.application.id` as a guild cache key in examples; it is not a guild id.
+- Treat gateway event handling as ordered work. The runtime now serializes dispatches through a dedicated event processor rather than unbounded per-event task spawning.
+- Treat interaction request signatures as freshness-checked; stale and future timestamps are rejected.
+- Treat voice disconnects and endpoint loss as state-reset events that clear stale runtime/session data.
 
 ## Verification Commands
 
@@ -226,9 +300,13 @@ cargo test --all-features
 cargo check --all-features --all-targets
 ```
 
+```powershell
+cargo clippy --all-features --tests -- -D warnings
+```
+
 Focused checks are useful when editing one surface:
 
 - gateway/cache work: `cargo test --features "gateway cache" --lib gateway::bot::tests`
 - HTTP work: `cargo test --lib http::tests`
+- HTTP hardening work: check auth-header behavior and tokenized callback/webhook path tests in the focused HTTP suite
 - embed builder work: `cargo test --lib embed::tests`
-
