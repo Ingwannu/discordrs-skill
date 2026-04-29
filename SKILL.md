@@ -1,6 +1,6 @@
----
+﻿---
 name: discordrs-dev
-description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.1.0. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice receive, DAVE/MLS hooks, Opus PCM decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
+description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.2.0. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, DAVE/MLS hooks, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
 ---
 
 # Discordrs Dev
@@ -8,7 +8,7 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 ## Quick Start
 
 - Confirm the workspace version first. Prefer the repository's `Cargo.toml` over memory.
-- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing public examples, runtime selection, event flow, helper choice, or docs. The filename is retained for compatibility, but the content targets discordrs `1.1.0`.
+- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing public examples, runtime selection, event flow, helper choice, or docs. The filename is retained for compatibility, but the content targets discordrs `1.2.0`.
 - Preserve the existing typed/builder-style API unless a breaking change is explicitly requested.
 - Assume the public REST surface is typed-first: the old raw `RestClient` convenience methods are gone from the public API.
 - Assume builder implementation submodules are private; import through `discordrs::builders::{...}` or crate-root re-exports.
@@ -16,7 +16,7 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 - Assume bot `Authorization` headers are intentionally omitted for token-authenticated `/webhooks/...` and `/interactions/...` requests.
 - Assume gateway Identify/Resume payloads send the raw Discord token, not an HTTP `Bot ` prefix.
 - Assume typed slash/autocomplete input uses `CommandInteractionOption`, preserving nested option `value` and `focused`.
-- Assume voice receive includes raw UDP receive, RTP-size transport decrypt, pure-Rust Opus PCM decode, and an experimental `dave` feature hook; do not claim live DAVE/MLS interoperability without real voice gateway transition testing.
+- Assume voice includes raw UDP receive, Opus-frame send, RTP-size transport decrypt, pure-Rust Opus PCM decode, optional `voice-encode` PCM-to-Opus playback, and experimental `dave` receive/outbound hooks; do not claim live DAVE/MLS interoperability without real voice gateway transition testing.
 - Assume REST/event coverage includes polls, subscriptions, entitlements, soundboard, thread details, forum fields, invites, integrations, stickers, stage, onboarding, templates, and welcome screen helpers unless the current workspace proves otherwise.
 - When expanding tests, prefer hermetic local harnesses over real Discord traffic.
 - Assume `src/http.rs` may expose a test-only local base URL seam for request-wrapper tests.
@@ -76,7 +76,7 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 - Prefer direct unit tests first for builders, bitfields, types, parsers, and event decode helpers.
 - For `http.rs`, prefer a local TCP HTTP harness that records method, path, headers, and body so wrapper methods can be tested without touching Discord.
 - For `gateway/client.rs` and `voice_runtime.rs`, prefer local websocket harnesses with scripted `HELLO`, `READY`, `INVALID_SESSION`, `RECONNECT`, heartbeat, and close-frame flows.
-- For voice receive work, cover RTP header parsing, AES-GCM/XChaCha RTP-size decrypt, DAVE frame parsing, Opus decode, and DAVE state transitions with hermetic tests before claiming behavior.
+- For voice work, cover RTP header parsing, AES-GCM/XChaCha RTP-size encrypt/decrypt, Opus encode/decode, DAVE frame parsing, DAVE outbound command payloads, and DAVE state transitions with hermetic tests before claiming behavior.
 - For `gateway/bot.rs`, `cache.rs`, `collector.rs`, `sharding.rs`, and `voice.rs`, prefill runtime state, apply one event or command, and assert the exact mutation plus nearby no-op state.
 - Prefer tiny valid payloads over large shared fixtures when covering `decode_event`, `parse_interaction`, or modal parsers.
 - Prefer validation-before-network tests for helper wrappers when the target mostly delegates to `DiscordHttpClient`.
@@ -84,5 +84,5 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 
 ## Reference
 
-- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the beginner mental model, feature cause/effect map, runtime relationships, voice/DAVE boundaries, current typed coverage, common workflows, and pitfalls. Treat it as the `1.1.0` reference despite the legacy filename.
+- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the beginner mental model, feature cause/effect map, runtime relationships, voice/DAVE boundaries, current typed coverage, common workflows, and pitfalls. Treat it as the `1.2.0` reference despite the legacy filename.
 
