@@ -1,5 +1,4 @@
-﻿interface:
+interface:
   display_name: "Discordrs Dev"
-  short_description: "Build and explain discordrs 1.2.0 bots, runtimes, REST coverage, docs, voice, and DAVE hooks."
-  default_prompt: "Use $discordrs-dev to build, debug, explain, or document a discordrs 1.2.0 gateway runtime, typed interactions endpoint, REST flow, cache manager path, sharding setup, voice receive pipeline, Opus decode path, or experimental DAVE hook."
-
+  short_description: "Build and explain discordrs 1.2.1 bots and library work."
+  default_prompt: "Use $discordrs-dev to build, debug, explain, review, or document discordrs 1.2.1 gateway, interactions, REST, cache, docs, voice, or release work."

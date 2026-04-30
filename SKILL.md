@@ -1,4 +1,4 @@
-﻿---
+---
 name: discordrs-dev
 description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.2.1. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, DAVE/MLS hooks, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
 ---
