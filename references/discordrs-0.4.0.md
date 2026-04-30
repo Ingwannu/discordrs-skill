@@ -235,7 +235,7 @@ Important relationship:
 - `DiscordHttpClient` is still available, but treat it as a compatibility alias for `RestClient`.
 - Legacy convenience callbacks still exist on `EventHandler`, but `handle_event(...)` is the canonical typed entry point.
 - `ready`, `message_create`, and `interaction_create` now receive typed payloads too.
-- The modern public surface is `1.2.0`; examples/docs should prefer that version and naming.
+- The modern public surface is `1.2.1`; examples/docs should prefer that version and naming.
 - Builder implementation submodules are private. Use `discordrs::builders::{...}` or crate-root re-exports.
 - `ApplicationCommand` no longer implements `DiscordModel`. Use `id_opt()` and `created_at()` on the command directly.
 - `CommandInteractionData.options` uses `CommandInteractionOption`, not `ApplicationCommandOption`, so user-entered `value` / `focused` data remains available in typed slash/autocomplete flows.
@@ -247,9 +247,13 @@ Important relationship:
   - `RestClient::bulk_overwrite_global_commands(...)` -> `RestClient::bulk_overwrite_global_commands_typed(...)`
   - typed follow-up helpers may now return a typed `Message`; the raw JSON follow-up container helper still routes through crate-private JSON webhook helpers
 
-## 1.2.0 Release Notes For Agents
+## 1.2.1 Release Notes For Agents
 
-- Version source of truth: `Cargo.toml` is `1.2.0`; crates.io package/import remains `discordrs`, while public branding is `discord.rs`.
+- Version source of truth: `Cargo.toml` is `1.2.1`; crates.io package/import remains `discordrs`, while public branding is `discord.rs`.
+- Cache: default cache storage is bounded in normal builds; tune gateway runtime cache through `ClientBuilder::cache_config(...)`, and use `CacheConfig::unbounded()` only as an explicit operator choice.
+- OAuth2: `Debug` output redacts client secrets, authorization codes, access tokens, and refresh tokens.
+- REST safety: invite-code helpers validate path segments before authenticated request construction.
+- Default CI parity: run default-feature checks such as `cargo clippy --all-targets --locked -- -D warnings` in addition to all-features checks when touching feature-gated tests.
 - Gateway: `zlib-stream` payloads are buffered as a stream instead of decoded as independent binary frames.
 - HTTP: multipart upload helpers exist for message, webhook, and interaction attachment paths, and webhook message CRUD is typed.
 - Models/events: polls, AutoMod, scheduled events, audit logs, stickers, stage instances, onboarding, templates, invites, integrations, forum fields, soundboard, subscriptions, SKUs, and entitlements have stronger typed coverage.

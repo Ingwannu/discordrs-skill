@@ -86,5 +86,5 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 
 ## Reference
 
-- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the beginner mental model, feature cause/effect map, runtime relationships, voice/DAVE boundaries, current typed coverage, common workflows, and pitfalls. Treat it as the `1.2.0` reference despite the legacy filename.
+- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the beginner mental model, feature cause/effect map, runtime relationships, voice/DAVE boundaries, current typed coverage, common workflows, and pitfalls. Treat it as the `1.2.1` reference despite the legacy filename.
 
