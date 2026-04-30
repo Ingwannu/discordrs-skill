@@ -1,10 +1,10 @@
-﻿# discordrs 1.2.0 Reference
+﻿# discordrs 1.2.1 Reference
 
-Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility, but the guidance below targets `discordrs 1.2.0`.
+Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility, but the guidance below targets `discordrs 1.2.1`.
 
 ## Version
 
-- Verified workspace version: `1.2.0`
+- Verified workspace version: `1.2.1`
 - Preferred names in new code/docs:
   - `Client` over `BotClient`
   - `RestClient` over `DiscordHttpClient`
@@ -17,6 +17,9 @@ Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility, 
   - tokenized callback/webhook paths are validated and reject empty or unsafe path segments
   - bot `Authorization` headers are intentionally omitted for token-authenticated `/webhooks/...` and `/interactions/...` requests
   - gateway Identify/Resume payloads send the raw Discord token
+  - default cache storage is bounded; tune gateway cache with `ClientBuilder::cache_config(...)`
+  - `CacheConfig::unbounded()` is explicit opt-in for retaining all cached gateway data
+  - OAuth2 client secrets, authorization codes, access tokens, and refresh tokens are redacted from `Debug` output
   - typed slash/autocomplete input uses `CommandInteractionOption` so nested `value` / `focused` data survives parsing
   - voice provides raw UDP receive, Opus-frame send, RTP header parsing, AES-GCM/XChaCha RTP-size transport encrypt/decrypt, pure-Rust Opus PCM decode, and optional PCM-to-Opus encode through `voice-encode`
   - `dave` is an experimental feature that exposes DAVE opcode state plus `davey`/OpenMLS-backed receive and outbound media hooks; do not claim full live DAVE support without real Discord voice gateway transition tests
@@ -287,6 +290,8 @@ Important relationship:
 - Do not assume follow-up webhook helpers can work with `application_id == 0`.
 - Do not attach bot `Authorization` headers to token-authenticated `/webhooks/...` or `/interactions/...` requests.
 - Do not bypass tokenized webhook/callback path validation with empty or unsafe path segments.
+- Do not switch gateway cache defaults back to unbounded retention; require an explicit `CacheConfig::unbounded()` choice for that behavior.
+- Do not derive `Debug` on OAuth2 types that store client secrets, authorization codes, access tokens, or refresh tokens.
 - Do not describe default `voice` as full DAVE support. It provides state, handshake/runtime, transport encrypt/decrypt, Opus-frame send, and PCM decode; `voice-encode` adds PCM encode/playback; DAVE/MLS remains experimental and must be validated against live voice gateway transitions.
 - Treat `MESSAGE_UPDATE` as partial by nature when writing custom cache logic or examples.
 - Do not use `ready.data.application.id` as a guild cache key in examples; it is not a guild id.

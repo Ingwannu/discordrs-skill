@@ -1,6 +1,6 @@
 ﻿---
 name: discordrs-dev
-description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.2.0. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, DAVE/MLS hooks, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
+description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.2.1. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, DAVE/MLS hooks, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
 ---
 
 # Discordrs Dev
@@ -8,7 +8,7 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 ## Quick Start
 
 - Confirm the workspace version first. Prefer the repository's `Cargo.toml` over memory.
-- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing public examples, runtime selection, event flow, helper choice, or docs. The filename is retained for compatibility, but the content targets discordrs `1.2.0`.
+- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing public examples, runtime selection, event flow, helper choice, or docs. The filename is retained for compatibility, but the content targets discordrs `1.2.1`.
 - Preserve the existing typed/builder-style API unless a breaking change is explicitly requested.
 - Assume the public REST surface is typed-first: the old raw `RestClient` convenience methods are gone from the public API.
 - Assume builder implementation submodules are private; import through `discordrs::builders::{...}` or crate-root re-exports.
@@ -18,6 +18,8 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 - Assume typed slash/autocomplete input uses `CommandInteractionOption`, preserving nested option `value` and `focused`.
 - Assume voice includes raw UDP receive, Opus-frame send, RTP-size transport decrypt, pure-Rust Opus PCM decode, optional `voice-encode` PCM-to-Opus playback, and experimental `dave` receive/outbound hooks; do not claim live DAVE/MLS interoperability without real voice gateway transition testing.
 - Assume REST/event coverage includes polls, subscriptions, entitlements, soundboard, thread details, forum fields, invites, integrations, stickers, stage, onboarding, templates, and welcome screen helpers unless the current workspace proves otherwise.
+- Assume default cache storage is bounded; use `ClientBuilder::cache_config(...)` to tune gateway cache limits and `CacheConfig::unbounded()` only for intentional unbounded retention.
+- Assume OAuth2 secret-bearing types redact credentials in `Debug` output; do not add derived `Debug` back to client secrets, authorization codes, access tokens, or refresh tokens.
 - When expanding tests, prefer hermetic local harnesses over real Discord traffic.
 - Assume `src/http.rs` may expose a test-only local base URL seam for request-wrapper tests.
 - Assume gateway and voice runtime coverage can be driven with local `TcpListener` + websocket harnesses.
