@@ -1,10 +1,10 @@
-﻿# discordrs 1.2.1 Reference
+# discordrs 1.2.2 Reference
 
-Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility, but the guidance below targets `discordrs 1.2.1`.
+Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility, but the guidance below targets `discordrs 1.2.2`.
 
 ## Version
 
-- Verified workspace version: `1.2.1`
+- Verified workspace version: `1.2.2`
 - Preferred names in new code/docs:
   - `Client` over `BotClient`
   - `RestClient` over `DiscordHttpClient`
@@ -235,7 +235,7 @@ Important relationship:
 - `DiscordHttpClient` is still available, but treat it as a compatibility alias for `RestClient`.
 - Legacy convenience callbacks still exist on `EventHandler`, but `handle_event(...)` is the canonical typed entry point.
 - `ready`, `message_create`, and `interaction_create` now receive typed payloads too.
-- The modern public surface is `1.2.1`; examples/docs should prefer that version and naming.
+- The modern public surface is `1.2.2`; examples/docs should prefer that version and naming.
 - Builder implementation submodules are private. Use `discordrs::builders::{...}` or crate-root re-exports.
 - `ApplicationCommand` no longer implements `DiscordModel`. Use `id_opt()` and `created_at()` on the command directly.
 - `CommandInteractionData.options` uses `CommandInteractionOption`, not `ApplicationCommandOption`, so user-entered `value` / `focused` data remains available in typed slash/autocomplete flows.
@@ -247,6 +247,13 @@ Important relationship:
   - `RestClient::bulk_overwrite_global_commands(...)` -> `RestClient::bulk_overwrite_global_commands_typed(...)`
   - typed follow-up helpers may now return a typed `Message`; the raw JSON follow-up container helper still routes through crate-private JSON webhook helpers
 
+## 1.2.2 Release Notes For Agents
+
+- Version source of truth: `Cargo.toml` is `1.2.2`; crates.io package/import remains `discordrs`, while public branding is `discord.rs`.
+- Gateway: default startup no longer sends Identify payload `compress: true` unless payload compression is intentionally supported by the runtime.
+- Gateway: explicit `zlib-stream` transport compression decodes compressed `HELLO` frames before Identify and uses the same stream decoder for dispatch payloads.
+- Verification focus: keep the local websocket regression that sends compressed `HELLO` plus compressed dispatch frames.
+- Release docs: update root `CHANGELOG.md`, Docsify changelog, README, USAGE, and both skill copies together when the release surface changes.
 ## 1.2.1 Release Notes For Agents
 
 - Version source of truth: `Cargo.toml` is `1.2.1`; crates.io package/import remains `discordrs`, while public branding is `discord.rs`.

@@ -1,6 +1,6 @@
 ---
 name: discordrs-dev
-description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.2.1. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, DAVE/MLS hooks, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
+description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 1.2.2. Use when Codex needs to work on discordrs gateway runtimes, typed EventHandler/Event flows, interactions endpoints, RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, DAVE/MLS hooks, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, or the upstream discordrs project.
 ---
 
 # Discordrs Dev
@@ -8,13 +8,14 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 ## Quick Start
 
 - Confirm the workspace version first. Prefer the repository's `Cargo.toml` over memory.
-- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing public examples, runtime selection, event flow, helper choice, or docs. The filename is retained for compatibility, but the content targets discordrs `1.2.1`.
+- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing public examples, runtime selection, event flow, helper choice, or docs. The filename is retained for compatibility, but the content targets discordrs `1.2.2`.
 - Preserve the existing typed/builder-style API unless a breaking change is explicitly requested.
 - Assume the public REST surface is typed-first: the old raw `RestClient` convenience methods are gone from the public API.
 - Assume builder implementation submodules are private; import through `discordrs::builders::{...}` or crate-root re-exports.
 - Assume tokenized callback/webhook paths are validated and must reject empty or unsafe path segments.
 - Assume bot `Authorization` headers are intentionally omitted for token-authenticated `/webhooks/...` and `/interactions/...` requests.
 - Assume gateway Identify/Resume payloads send the raw Discord token, not an HTTP `Bot ` prefix.
+- Assume default Gateway startup no longer requests payload compression without a matching decoder, and explicit `zlib-stream` transport compression decodes compressed `HELLO` frames before Identify.
 - Assume typed slash/autocomplete input uses `CommandInteractionOption`, preserving nested option `value` and `focused`.
 - Assume voice includes raw UDP receive, Opus-frame send, RTP-size transport decrypt, pure-Rust Opus PCM decode, optional `voice-encode` PCM-to-Opus playback, and experimental `dave` receive/outbound hooks; do not claim live DAVE/MLS interoperability without real voice gateway transition testing.
 - Assume REST/event coverage includes polls, subscriptions, entitlements, soundboard, thread details, forum fields, invites, integrations, stickers, stage, onboarding, templates, and welcome screen helpers unless the current workspace proves otherwise.
@@ -86,5 +87,5 @@ description: Build, update, debug, explain, review, and document Rust Discord bo
 
 ## Reference
 
-- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the beginner mental model, feature cause/effect map, runtime relationships, voice/DAVE boundaries, current typed coverage, common workflows, and pitfalls. Treat it as the `1.2.1` reference despite the legacy filename.
+- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the beginner mental model, feature cause/effect map, runtime relationships, voice/DAVE boundaries, current typed coverage, common workflows, and pitfalls. Treat it as the `1.2.2` reference despite the legacy filename.
 
