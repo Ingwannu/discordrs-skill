@@ -91,6 +91,18 @@ Layer only when needed:
 - Use voice: use `Context::join_voice(...)`, `connect_voice_runtime(...)`, `VoiceRuntimeHandle`, `recv_voice_packet(...)`, `VoiceOpusDecoder`, and playback helpers.
 - Use DAVE: use `recv_voice_packet_with_dave(...)`, `VoiceDaveySession`, `VoiceDaveFrameEncryptor`, and the live validation harness before making release claims.
 
+## If You Do Not Know The Exact Function
+
+1. Read crate-root exports in `src/lib.rs` first. That shows the intended public names.
+2. Search the surface by concept, not by guessed name:
+   `rg -n "lobby|webhook|guild_bans|voice_state|command_permissions" src examples USAGE.md discordrsdocs`.
+3. For REST route work, inspect `src/http.rs`, `src/http/paths.rs`, and `src/http/tests.rs` together so method name, path builder, auth mode, and test expectation stay aligned.
+4. For model fields, inspect the public type in `src/model.rs` and matching tests/docs before inventing a field.
+5. For Gateway events, inspect `src/event.rs` and `decode_event(...)` tests before adding or documenting a variant.
+6. For interactions, inspect `src/interactions.rs`, `src/framework.rs`, `src/parsers/interaction.rs`, and the AppFramework docs before choosing raw JSON.
+7. For voice/DAVE, inspect `src/voice.rs`, `src/voice_runtime.rs`, and `tests/live_voice_dave.rs` before making capability claims.
+8. When in doubt, build docs locally with `cargo doc --all-features --no-deps --locked` and use the generated rustdoc as the public API index.
+
 ## Follow This Workflow
 
 1. Inspect the target workspace.

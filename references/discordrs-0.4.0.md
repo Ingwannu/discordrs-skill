@@ -184,6 +184,18 @@ Meaning:
 
 Use this list to pick public entry points before searching source.
 
+If an exact method or type name is missing from memory, do not guess. Use this discovery order:
+
+1. `src/lib.rs` for public re-exports and feature gates.
+2. `USAGE.md`, `README.md`, and `discordrsdocs/docs/api/*.md` for intended examples.
+3. `src/http.rs`, `src/http/paths.rs`, and `src/http/tests.rs` for REST methods, route builders, auth mode, and request/response expectations.
+4. `src/model.rs` for public data shapes and Discord object fields.
+5. `src/event.rs` for Gateway receive events and decoding behavior.
+6. `src/framework.rs`, `src/interactions.rs`, and `src/parsers/interaction.rs` for AppFramework, typed interactions, and parsing behavior.
+7. `src/webhook_events.rs` for Webhook Events payloads.
+8. `src/voice.rs`, `src/voice_runtime.rs`, and `tests/live_voice_dave.rs` for voice, Opus, DAVE, and live-gate behavior.
+9. `cargo doc --all-features --no-deps --locked` when you need a generated public API index.
+
 ### Builders And Components V2
 
 - `MessageBuilder`, `InteractionResponseBuilder`
