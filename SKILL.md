@@ -1,6 +1,6 @@
 ---
 name: discordrs-dev
-description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 2.0.0. Use when Codex needs to work on discord.rs gateway runtimes, typed EventHandler/Event flows, AppFramework HTTP interactions, Webhook Events, Lobby/Social SDK helpers, typed RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, live DAVE/MLS validation, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, coverage, release checks, or the upstream discordrs project.
+description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 2.0.2. Use when Codex needs to work on discord.rs gateway runtimes, typed EventHandler/Event flows, AppFramework HTTP interactions, Webhook Events, Lobby/Social SDK helpers, typed RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, live DAVE/MLS validation, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, coverage, release checks, or the upstream discordrs project.
 ---
 
 # Discordrs Dev
@@ -11,7 +11,7 @@ The Cargo package and Rust import name are `discordrs`; the public-facing brand 
 ## Quick Start
 
 - Confirm the workspace version first. Prefer the repository's `Cargo.toml` over memory or this skill.
-- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing examples, runtime selection, helper choice, docs, release claims, or public API guidance. The filename is retained for compatibility; the content targets `discordrs 2.0.0`.
+- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing examples, runtime selection, helper choice, docs, release claims, or public API guidance. The filename is retained for compatibility; the content targets `discordrs 2.0.2`.
 - Start by choosing the runtime lane:
   - Gateway bot: `Client::builder(...).event_handler(...).start()`.
   - HTTP interactions app: `AppFramework` or `try_typed_interactions_endpoint(...)`.
@@ -26,15 +26,15 @@ The Cargo package and Rust import name are `discordrs`; the public-facing brand 
 - Treat Webhook Events as HTTP event payloads from Discord's Events URL, not Gateway dispatches and not incoming webhook executions.
 - Treat Lobby helpers as Discord application/Social SDK REST helpers. Some routes use bot authorization and some current-user routes require OAuth2 Bearer tokens.
 
-## 2.0.0 Ground Truth
+## 2.0.2 Ground Truth
 
-- Version: `discordrs 2.0.0`.
+- Version: `discordrs 2.0.2`.
 - Official REST route-shape audit: `223 / 223` mapped.
 - Official Gateway send-event audit: `7 / 7` mapped.
 - Official Gateway receive-event audit: `82 / 82` mapped.
 - Official object-heading audit: `90 / 90` mapped or intentionally dynamic.
-- Release coverage evidence: all-features line coverage stayed above the 90% gate; recorded release result was `92.32%`.
-- DAVE/MLS: an ignored live validation harness exists and passed for the 2.0.0 release. Do not claim future live DAVE compatibility from default tests alone.
+- Release coverage evidence: all-features line coverage stayed above the 90% gate; recorded release result was `93.50%`.
+- DAVE/MLS: an ignored live validation harness exists and passed for the 2.0.0 release. Do not claim 2.0.2 live DAVE compatibility from default tests alone; rerun the ignored live harness for that claim.
 
 ## Safety Rules
 
@@ -160,4 +160,4 @@ Focused checks:
 
 ## Reference
 
-- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the 2.0.0 beginner map, feature flag decisions, API families, workflow snippets, release boundaries, and pitfalls.
+- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the 2.0.2 beginner map, feature flag decisions, API families, workflow snippets, release boundaries, and pitfalls.

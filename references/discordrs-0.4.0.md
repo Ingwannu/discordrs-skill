@@ -1,19 +1,19 @@
-# discordrs 2.0.0 Reference
+# discordrs 2.0.2 Reference
 
-Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility with installed skills and older prompts, but the guidance below targets `discordrs 2.0.0`.
+Legacy filename note: this file remains `discordrs-0.4.0.md` for compatibility with installed skills and older prompts, but the guidance below targets `discordrs 2.0.2`.
 
 The Cargo package and import path are `discordrs`. The public-facing project name is `discord.rs`.
 
 ## Version And Evidence
 
-- Verified release version: `2.0.0`.
+- Verified release version: `2.0.2`.
 - Source of truth for a workspace: `Cargo.toml`.
-- Official REST route-shape coverage recorded for 2.0.0: `223 / 223`.
-- Official Gateway send-event coverage recorded for 2.0.0: `7 / 7`.
-- Official Gateway receive-event coverage recorded for 2.0.0: `82 / 82`.
-- Official object-heading coverage recorded for 2.0.0: `90 / 90` mapped or intentionally dynamic.
-- Release coverage recorded for 2.0.0: `92.32%` all-features line coverage.
-- Live DAVE/MLS validation: ignored harness passed against a real Discord voice session for the 2.0.0 release. Do not reuse that as proof for future behavior without rerunning the live gate.
+- Official REST route-shape coverage recorded for 2.0.2: `223 / 223`.
+- Official Gateway send-event coverage recorded for 2.0.2: `7 / 7`.
+- Official Gateway receive-event coverage recorded for 2.0.2: `82 / 82`.
+- Official object-heading coverage recorded for 2.0.2: `90 / 90` mapped or intentionally dynamic.
+- Release coverage recorded for 2.0.2: `93.50%` all-features line coverage.
+- Live DAVE/MLS validation: ignored harness passed against a real Discord voice session for the 2.0.0 release. Do not reuse that as proof for 2.0.2 live behavior without rerunning the live gate.
 
 If the target workspace uses a different version, prefer the workspace and adjust examples to match it.
 
@@ -33,7 +33,7 @@ If the target workspace uses a different version, prefer the workspace and adjus
 - Gateway Identify/Resume payloads send the raw Discord token.
 - Default Gateway startup must not ask for payload compression unless the runtime decodes it; explicit `zlib-stream` decodes compressed `HELLO` and dispatch frames.
 - Typed slash/autocomplete input uses `CommandInteractionOption` so nested option `value` and `focused` survive parsing.
-- Default cache storage is bounded; use `ClientBuilder::cache_config(...)` to tune and `CacheConfig::unbounded()` only by explicit operator choice.
+- Default cache storage is bounded; use `ClientBuilder::cache_config(...)` to tune and `CacheConfig::unbounded()` only by explicit operator choice. Use the `Arc` cache read helpers for hot member/message/presence paths that should avoid deep cloning cached payloads.
 - OAuth2 client secrets, authorization codes, access tokens, and refresh tokens are redacted from `Debug`.
 - Interaction signatures are timestamp freshness checked.
 - Voice provides raw UDP receive, Opus-frame send, RTP parsing, AES-GCM/XChaCha RTP-size transport encrypt/decrypt, Opus PCM decode, optional PCM-to-Opus encode through `voice-encode`, and experimental DAVE hooks through `dave`.
@@ -79,7 +79,7 @@ Cause and effect:
   - Adds Ed25519 request verification, raw and typed interactions endpoints, `TypedInteractionHandler`, and `AppFramework`.
   - Choose this when Discord calls your HTTP server.
 - `cache`:
-  - Enables in-memory cache storage and cache policy tuning.
+  - Enables in-memory cache storage, cache policy tuning, and the `CacheBackend` extension trait for member/message/presence stores.
   - Choose this when manager reads should use gateway-populated state.
 - `collectors`:
   - Adds collectors for message, component, modal, and interaction flows.
@@ -180,7 +180,7 @@ Meaning:
 - Voice credentials are short-lived.
 - DAVE claims need the ignored live test, not just default unit tests.
 
-## Major API Families In 2.0.0
+## Major API Families In 2.0.2
 
 Use this list to pick public entry points before searching source.
 
@@ -277,7 +277,7 @@ If an exact method or type name is missing from memory, do not guess. Use this d
 
 ### Cache, Collectors, Sharding
 
-- Cache: `CacheConfig`, `CacheHandle`, `GuildManager`, `ChannelManager`, `MemberManager`, `MessageManager`, `RoleManager`, `UserManager`
+- Cache: `CacheConfig`, `CacheHandle`, `CacheBackend`, `GuildManager`, `ChannelManager`, `MemberManager`, `MessageManager`, `RoleManager`, `UserManager`
 - Cache buckets include users, guild metadata, channels, members, roles, messages, emoji, stickers, voice states, presences, threads, webhooks, scheduled events, AutoMod rules, invites, integrations, soundboard sounds, and monetization entities where enabled by policy.
 - Collectors: `CollectorHub`, `MessageCollector`, `ComponentCollector`, `ModalCollector`, `InteractionCollector`
 - Sharding: `ShardConfig`, `ShardInfo`, `ShardRuntimeState`, `ShardRuntimeStatus`, `ShardIpcMessage`, `ShardMessenger`, `ShardSupervisor`, `ShardSupervisorEvent`
@@ -521,7 +521,7 @@ Treat `DISCORDRS_LIVE_VOICE_TOKEN` as secret and short-lived.
   - old `RestClient::bulk_overwrite_global_commands(...)` -> `RestClient::bulk_overwrite_global_commands_typed(...)`
   - raw interaction routing -> typed `Interaction` or `AppFramework`
 
-## 2.0.0 Release Notes For Agents
+## 2.0.2 Release Notes For Agents
 
 - Added `AppFramework` for typed HTTP interaction routing across commands, components, and modals.
 - Added typed Webhook Events parsing for application authorization, entitlement, lobby message, and game DM event families.
