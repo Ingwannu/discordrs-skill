@@ -1,163 +1,166 @@
 ---
 name: discordrs-dev
-description: Build, update, debug, explain, review, and document Rust Discord bots or libraries that use discordrs 2.0.2. Use when Codex needs to work on discord.rs gateway runtimes, typed EventHandler/Event flows, AppFramework HTTP interactions, Webhook Events, Lobby/Social SDK helpers, typed RestClient or DiscordHttpClient helpers, cache managers, collectors, sharding, voice playback/receive, live DAVE/MLS validation, Opus encode/decode, Components V2 builders, modal parsing, examples, docs, coverage, release checks, or the upstream discordrs project.
+description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.0, and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice/DAVE/AudioPlayer, sharding, or upgrading 2.x code to 3.0.
 ---
 
-# Discordrs Dev
+# discordrs-dev (discord.rs 3.0.0)
 
-Use this skill for `discordrs` crate work and for apps built with `discordrs`.
-The Cargo package and Rust import name are `discordrs`; the public-facing brand is `discord.rs`.
+Crate `discordrs` (brand "discord.rs"), version 3.0.0 (crates.io 2026-10-18, tag `v3.0.0`),
+MSRV 1.88, async on Tokio. Source: <https://github.com/Ingwannu/discord.rs>; API docs on docs.rs;
+guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
 
-## Quick Start
+## First steps
 
-- Confirm the workspace version first. Prefer the repository's `Cargo.toml` over memory or this skill.
-- Read [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) before changing examples, runtime selection, helper choice, docs, release claims, or public API guidance. The filename is retained for compatibility; the content targets `discordrs 2.0.2`.
-- Start by choosing the runtime lane:
-  - Gateway bot: `Client::builder(...).event_handler(...).start()`.
-  - HTTP interactions app: `AppFramework` or `try_typed_interactions_endpoint(...)`.
-  - REST-only tool: `RestClient::new(...)` or `Client::builder(...).rest_only()`.
-  - Webhook Events URL: verify the Ed25519 signature, then `parse_webhook_event_payload(...)`.
-  - Voice bot: `gateway + voice`, then join voice and use `connect_voice_runtime(...)`.
-- Prefer typed/builder APIs. Do not handwrite JSON, route strings, or component payloads when the crate has a public type, builder, or helper.
-- Treat `RestClient` as the canonical HTTP surface. `DiscordHttpClient` remains a compatibility alias.
-- Treat `Client` as the canonical Gateway surface. `BotClient` remains a compatibility alias.
-- Treat `EventHandler::handle_event(ctx, event)` plus `Event` matching as the canonical Gateway flow. Legacy per-event callbacks still exist for compatibility and focused handlers.
-- Treat `AppFramework` as the beginner-friendly HTTP interactions router for commands, components, modals, guards, cooldowns, and fallback behavior.
-- Treat Webhook Events as HTTP event payloads from Discord's Events URL, not Gateway dispatches and not incoming webhook executions.
-- Treat Lobby helpers as Discord application/Social SDK REST helpers. Some routes use bot authorization and some current-user routes require OAuth2 Bearer tokens.
+1. Read the project's `Cargo.toml` / `Cargo.lock` for the discordrs version and features. This
+   skill is exact for 3.0.0. For 2.x code, read [migration-2x-to-3.md](references/migration-2x-to-3.md).
+   For a newer version, check its `CHANGELOG.md` before trusting details here.
+2. Pick the runtime lane (below), then open only the reference you need.
+3. Prefer typed APIs: never hand-write JSON when a `discordrs::request` type, builder, or method
+   exists; never invent a method; look it up ([api-overview.md](references/api-overview.md),
+   "Finding the right function").
 
-## 2.0.2 Ground Truth
+## Quick start: choose the lane
 
-- Version: `discordrs 2.0.2`.
-- Official REST route-shape audit: `223 / 223` mapped.
-- Official Gateway send-event audit: `7 / 7` mapped.
-- Official Gateway receive-event audit: `82 / 82` mapped.
-- Official object-heading audit: `90 / 90` mapped or intentionally dynamic.
-- Release coverage evidence: all-features line coverage stayed above the 90% gate; recorded release result was `93.50%`.
-- DAVE/MLS: an ignored live validation harness exists and passed for the 2.0.0 release. Do not claim 2.0.2 live DAVE compatibility from default tests alone; rerun the ignored live harness for that claim.
+| Lane | Cargo features | Entry point | Reference |
+|---|---|---|---|
+| Gateway bot (events, cache, slash replies over the websocket) | `gateway` (+ `collectors`) | `Client::builder(token, intents).event_handler(h).start()` | [gateway-events-cache.md](references/gateway-events-cache.md) |
+| HTTP interactions endpoint (serverless-style slash app) | `interactions` | `try_typed_interactions_endpoint(public_key, AppFramework::builder()...build())` → axum 0.8 `Router` | [interactions.md](references/interactions.md) |
+| REST-only tool (register commands, send messages, admin) | none (default) | `RestClient::new(token, Some(app_id))` | [rest-requests-builders.md](references/rest-requests-builders.md) |
+| Webhook Events (Events URL) | none (`interactions` for `verify_discord_signature`) | verify signature, then `parse_webhook_event_payload` | [api-overview.md](references/api-overview.md) |
+| Voice / music | `gateway`, `voice`, `voice-encode` (`dave` for E2EE) | `ctx.join_voice` → own VOICE_STATE + VOICE_SERVER updates → `connect_voice_runtime(VoiceRuntimeConfig)` → `AudioPlayer` (non-DAVE calls only) | [voice-sharding.md](references/voice-sharding.md) |
+| Large bots | `sharding` | `spawn_auto_shards()`, `sharding::process` | [voice-sharding.md](references/voice-sharding.md) |
 
-## Safety Rules
+```rust
+// features: gateway
+use std::sync::Arc;
 
-- Tokenized callback/webhook paths must validate path segments and reject empty or unsafe values.
-- Bot `Authorization` headers are intentionally omitted for token-authenticated `/webhooks/...` and `/interactions/...` requests.
-- Gateway Identify/Resume payloads send the raw Discord token, not an HTTP `Bot ` prefix.
-- Default Gateway startup must not request payload compression without a matching decoder. Explicit `zlib-stream` transport compression must decode compressed `HELLO` and dispatch frames with a stream decoder.
-- Typed slash/autocomplete input uses `CommandInteractionOption`; preserve nested option `value` and `focused`.
-- Cache defaults are bounded. Use `ClientBuilder::cache_config(...)` for tuning and `CacheConfig::unbounded()` only for intentional unbounded retention.
-- OAuth2 secret-bearing types must redact credentials in `Debug`; do not derive or print secrets.
-- Interaction signatures are freshness-checked. Stale and future timestamps are rejected.
-- `MESSAGE_UPDATE` is partial by nature; custom cache logic must merge carefully instead of wiping known fields.
-- Voice disconnects and endpoint loss reset stale runtime/session state.
-- DAVE is live-gated. The `dave` feature exposes parser/state/decryptor/encryptor/MLS hooks, but interoperability claims require the ignored live test.
+use discordrs::{
+    gateway_intents, Client, Context, DiscordError, Event, EventHandler, EventKind, Interaction,
+    InteractionResponder,
+};
 
-## Beginner Mental Model
+struct Bot;
 
-Pick one primary surface first, then add optional layers.
+impl EventHandler for Bot {
+    // Plain `async fn` (no #[async_trait]); the future must be Send.
+    async fn handle_event(&self, ctx: Context, event: Arc<Event>) {
+        match event.kind() {
+            EventKind::Ready(ready) => println!("ready as {}", ready.user.username),
+            EventKind::InteractionCreate(interaction) => {
+                if let Interaction::ChatInputCommand(command) = &**interaction {
+                    if let Err(error) = command.reply_ephemeral(ctx.rest().as_ref(), "pong").await {
+                        eprintln!("reply failed: {error}");
+                    }
+                }
+            }
+            _ => {} // EventKind is large and open: keep a catch-all arm
+        }
+    }
+}
 
-1. Core/default
-   Builders, models, parsers, helpers, Components V2, `RestClient`, and response builders.
-2. Gateway
-   Long-lived websocket bot runtime with typed `Event` dispatch.
-3. Interactions
-   Signed HTTP endpoint for Discord interaction POSTs; use `AppFramework` for simple apps.
-4. Webhook Events
-   Signed HTTP endpoint for Discord application events; parse into `WebhookEvent`.
-5. Voice
-   Voice state, voice gateway/UDP runtime, Opus send/receive/decode, optional encode, experimental DAVE hooks.
-
-Layer only when needed:
-
-- Add `cache` for cache-backed manager reads.
-- Add `collectors` for wait-for-next-message/component/modal flows.
-- Add `sharding` for multi-shard lifecycle control.
-- Add `voice` for voice state/runtime/receive/playback.
-- Add `voice-encode` for PCM-to-Opus playback.
-- Add `dave` for DAVE/MLS frame and command integration.
-
-## Choose the Right Entry Point
-
-- Send/edit messages: `RestClient::create_message(...)`, `RestClient::update_message(...)`, or helpers such as `send_message(...)`.
-- Register commands: `SlashCommandBuilder`, `UserCommandBuilder`, `MessageCommandBuilder`, then `create_*_command(...)` or `bulk_overwrite_*_typed(...)`.
-- Handle Gateway events: implement `EventHandler`, then match `Event`.
-- Reply to Gateway interactions: match `Event::InteractionCreate(...)`, then use `respond_with_message(...)`, `followup_message(...)`, `defer_interaction(...)`, or `update_interaction_message(...)`.
-- Build an HTTP slash-command app: use `AppFramework::builder().command(...).component(...).modal(...).build()`.
-- Build a lower-level interactions endpoint: implement `TypedInteractionHandler` and pass it to `try_typed_interactions_endpoint(...)`.
-- Parse Webhook Events: verify the signature, then `parse_webhook_event_payload(...)`, then match `WebhookEvent`.
-- Use Lobby/Social SDK routes: use `Lobby`, `CreateLobby`, `ModifyLobby`, `AddLobbyMember`, `LobbyMemberUpdate`, and `LinkLobbyChannel` helpers.
-- Use OAuth2: use `OAuth2Client`, `OAuth2AuthorizationRequest`, token exchange/refresh helpers, current-user connection helpers, and Bearer-token routes where Discord requires user authorization.
-- Use cache: use `ctx.guilds()`, `ctx.channels()`, `ctx.members()`, `ctx.messages()`, `ctx.roles()` and `CacheConfig`.
-- Use collectors: use `CollectorHub`, `MessageCollector`, `ComponentCollector`, `ModalCollector`, or `InteractionCollector`.
-- Use sharding: use `ShardConfig`, `ShardSupervisor`, `ShardMessenger`, and shard lifecycle/status types.
-- Use voice: use `Context::join_voice(...)`, `connect_voice_runtime(...)`, `VoiceRuntimeHandle`, `recv_voice_packet(...)`, `VoiceOpusDecoder`, and playback helpers.
-- Use DAVE: use `recv_voice_packet_with_dave(...)`, `VoiceDaveySession`, `VoiceDaveFrameEncryptor`, and the live validation harness before making release claims.
-
-## If You Do Not Know The Exact Function
-
-1. Read crate-root exports in `src/lib.rs` first. That shows the intended public names.
-2. Search the surface by concept, not by guessed name:
-   `rg -n "lobby|webhook|guild_bans|voice_state|command_permissions" src examples USAGE.md discordrsdocs`.
-3. For REST route work, inspect `src/http.rs`, `src/http/paths.rs`, and `src/http/tests.rs` together so method name, path builder, auth mode, and test expectation stay aligned.
-4. For model fields, inspect the public type in `src/model.rs` and matching tests/docs before inventing a field.
-5. For Gateway events, inspect `src/event.rs` and `decode_event(...)` tests before adding or documenting a variant.
-6. For interactions, inspect `src/interactions.rs`, `src/framework.rs`, `src/parsers/interaction.rs`, and the AppFramework docs before choosing raw JSON.
-7. For voice/DAVE, inspect `src/voice.rs`, `src/voice_runtime.rs`, and `tests/live_voice_dave.rs` before making capability claims.
-8. When in doubt, build docs locally with `cargo doc --all-features --no-deps --locked` and use the generated rustdoc as the public API index.
-
-## Follow This Workflow
-
-1. Inspect the target workspace.
-   Check `Cargo.toml`, features, examples, docs, and the current public API before making claims.
-2. Pick a lane.
-   Gateway, interactions/AppFramework, Webhook Events, REST-only, cache, collectors, sharding, voice, DAVE, or docs/release.
-3. Prefer typed public entry points.
-   Use crate-root re-exports or `discordrs::builders::{...}`. Do not import private builder submodules.
-4. Keep authorization mode explicit.
-   Bot-token HTTP, token-authenticated webhook/interaction callback, and OAuth2 Bearer routes have different header rules.
-5. Add or update examples using small, runnable snippets.
-   A beginner AI should be able to copy the pattern without knowing Discord internals.
-6. Add or update tests when behavior changes.
-   Prefer hermetic local harnesses over live Discord traffic, except for the explicitly ignored live DAVE gate.
-7. Sync docs and skills together.
-   When the public surface changes, update `README.md`, `USAGE.md`, Docsify pages under `discordrsdocs/`, root `CHANGELOG.md`, and both skill copies when applicable.
-8. Keep skill copies byte-identical.
-   `C:\Users\B360M-PC\Documents\guthab\discordrs-skill` and `C:\Users\B360M-PC\.codex\skills\discordrs-dev` must match for `SKILL.md`, `agents/openai.yaml`, and `references/discordrs-0.4.0.md`.
-
-## Verification Commands
-
-Use the smallest command set that proves the change, then broaden for public API or release work.
-
-```powershell
-cargo fmt --all -- --check
-cargo check --all-features --all-targets --locked
-cargo test --all-features --locked --no-fail-fast
-cargo clippy --all-features --all-targets --locked -- -D warnings
+#[tokio::main]
+async fn main() -> Result<(), DiscordError> {
+    let token = std::env::var("DISCORD_TOKEN")?;
+    Client::builder(&token, gateway_intents::GUILDS)
+        .event_handler(Bot)
+        .start()
+        .await
+}
 ```
 
-Docs/release checks:
+Register the `/ping` command once with `RestClient::bulk_overwrite_global_commands` (see
+[interactions.md](references/interactions.md), "Commands").
 
-```powershell
-$env:RUSTDOCFLAGS='-D warnings'; cargo doc --all-features --no-deps --locked
-cargo package --locked
-cargo llvm-cov --all-features --locked --summary-only
-```
+## Mental model
 
-Focused checks:
+- **Typed IDs.** `GuildId`, `ChannelId`, `UserId`, `RoleId`, `MessageId`, `ApplicationId`, … are
+  8-byte `Copy` newtypes, never zero, parsed strictly (`"…".parse()?`, `X::try_from(u64)?`), passed
+  by value. Mixing kinds does not compile. `GenericId` only where Discord leaves the kind open;
+  polymorphic fields are enums (`OverwriteTarget`, `CommandPermissionTarget`, …).
+- **Open discriminants.** `ChannelType`, `MessageType`, `ButtonStyle`, `InteractionType`, … are
+  newtypes with constants (`ChannelType::GUILD_TEXT`), `new(n)` / `get()`, unknown values kept,
+  no `Default`. Always keep a `_` arm.
+- **Patch vs Nullable.** `Patch::{Missing, Value}`, `Nullable::{Null, Value}`,
+  `NullablePatch<T>`; modify bodies use `clear_*()` to send `null`; partial events
+  (`MessageUpdate`, `MemberUpdate`, `GuildUpdate`) have `apply_to`.
+- **One shared event.** Every dispatch is decoded once into an `Arc<Event>` shared by cache,
+  collectors, and handlers. Match `event.kind()`; `event.name()`; `event.raw()` for known events
+  only with `keep_raw_events(true)` (always kept for `Unknown` / `DecodeFailed`); decode failures
+  go to `EventKind::DecodeFailed` / the `decode_failed` hook.
+- **Pipeline.** A per-shard processor updates cache and collectors in order without waiting for
+  handlers; handlers run in bounded lanes (interactions have their own lane and 2 s admission;
+  Serial mode runs one regular handler at a time per shard, so spawn long waits). The cache may
+  be ahead of the event you are handling; partial updates never create entries.
+- **Received vs sent types.** `discordrs::model` = what Discord sends; `discordrs::request` =
+  what you send (`CreateMessage`, `EditMessage`, `ExecuteWebhook`, `ModifyChannel`,
+  `InteractionMessage`, `Modal`, …). Builders produce `request` types; nothing is
+  `serde_json::Value`.
+- **One response type.** `request::InteractionResponse` serves the REST callback, the HTTP
+  endpoint, and `InteractionResponder`. HTTP handlers return `EndpointReply::{Inline, Accepted}`.
+  Each interaction has one shared response state (`Unacknowledged → InFlight →
+  Deferred/Replied/Acknowledged`, or `Uncertain` after an ambiguous failure, where a retry is
+  safe and Discord's 40060 settles it). Inline endpoint replies skip the client's default
+  `allowed_mentions`.
+- **Async traits without async-trait.** `EventHandler`, `CacheBackend`, `InteractionHandler`,
+  `TypedInteractionHandler`, `CachedManager` use `async fn`; not object safe (`Arc<B>`, not
+  `Arc<dyn ..>`).
+- **Safe transport.** One REST method per route; ambiguous POST/PATCH failures are not replayed;
+  interaction callbacks are exempt from the bot-global rate limit; tokens are scrubbed from errors.
 
-- HTTP wrappers and route validation: `cargo test --lib http::tests`
-- Gateway/cache behavior: `cargo test --features "gateway cache" --lib gateway::bot::tests`
-- Interaction parsing: run parser tests and add regressions for option `value` / `focused`.
-- Voice runtime: run voice runtime tests for RTP, Opus, encryption, and DAVE state when changed.
-- Live DAVE claim: run `cargo test --all-features --test live_voice_dave -- --ignored --nocapture` with the documented voice env vars.
+## Rules
 
-## Coverage Patterns
+1. Read tokens, public keys, and IDs from the environment or config; never print, log, commit,
+   or paste them (also not in examples, tests, or reports).
+2. Use the canonical 3.0 names; treat every deprecation warning as a bug to fix.
+3. Use `request::*` bodies and builders; `RawRequest` (+ `request_discard`) only for routes the
+   crate does not wrap.
+4. Respond to every interaction exactly once within 3 s (`defer` first for slow work); return
+   `EndpointReply::Accepted` only when the initial response goes over REST (sent already, or by
+   a task you spawned within the 3 s).
+5. Parse IDs at the boundary; never convert between ID kinds through `u64`.
+6. Keep `_` arms for open enums, `CollectorEndReason`, `ShardSupervisorEvent`, `EventKind`.
+7. Request privileged intents (`GUILD_MEMBERS`, `GUILD_PRESENCES`, `MESSAGE_CONTENT`) only when
+   needed, and enable them in the Developer Portal too.
+8. No std `Mutex` guard or `ctx.voice()` lock across `.await`.
+9. Bots set presence with `BotActivity` (name, type, state, url only); no activity buttons.
+10. Validate locally with `try_build()` / `validate()` before sending user-built content.
+11. When changing the crate itself, follow [contributing.md](references/contributing.md): lint
+    rules, Why-comments + Decision Log, en+ko docs, snippet harness, route manifest, gates.
 
-- Builders/bitfields/types/parsers/events: direct unit tests with tiny valid payloads.
-- `http.rs`: local TCP harness that records method, path, headers, and body.
-- Gateway client: local websocket harnesses for `HELLO`, `READY`, `INVALID_SESSION`, `RECONNECT`, heartbeat, compressed frames, and close handling.
-- Voice runtime: local or hermetic tests for RTP header parsing, AES-GCM/XChaCha RTP-size encrypt/decrypt, Opus encode/decode, DAVE frame parsing, DAVE outbound command payloads, and DAVE state transitions.
-- Cache/collectors/sharding: prefill runtime state, apply one event/command, assert exact mutation plus nearby no-op behavior.
-- Coverage-driven work: use `cargo llvm-cov --all-features --summary-only`, then target the largest uncovered real source files. Do not add coverage-only production refactors without a maintainability reason.
+## Pitfalls (details in [pitfalls-and-status.md](references/pitfalls-and-status.md))
 
-## Reference
+- `EndpointReply::Accepted` without a REST reply → "This interaction failed".
+- Autocomplete must be answered with choices; `AppFramework` needs `.autocomplete(name, ..)`.
+- `MessageCollector` no longer yields edits: use `MessageUpdateCollector`. Inside handlers use
+  `ctx.message_collector()` (replays from the handled event).
+- Received activity `buttons` are label strings; bots cannot send buttons.
+- `IS_COMPONENTS_V2` forbids `content`/embeds/poll: put text in `TextDisplayBuilder`.
+- `AllowedMentions::default()` suppresses all mentions; no `allowed_mentions` pings everything.
+- `AudioPlayer::play` needs `voice-encode`, and it plays nothing on DAVE-negotiated calls
+  (custom DAVE sink needed). Voice, DAVE, and sharding were not live-tested for 3.0.0.
+- Serial dispatch (default) runs one handler at a time per shard: spawn long collector waits.
+- Default cache keeps at most 1,000 guilds (`CacheConfig::max_guilds`).
 
-- Load [references/discordrs-0.4.0.md](references/discordrs-0.4.0.md) for the 2.0.2 beginner map, feature flag decisions, API families, workflow snippets, release boundaries, and pitfalls.
+## Verify your work
+
+For a bot project: `cargo check` / `cargo clippy --all-targets -- -D warnings` with the features
+you use, and `cargo test`. Never run a bot against Discord with a real token unless the user
+asked for it. For this skill's own examples: `scripts/check-examples.sh` compiles every Rust block
+against the published crate (see `README.md`).
+
+## References
+
+- [api-overview.md](references/api-overview.md): features, module map, typed IDs, discriminants,
+  `Patch`, bitfields/intents, permissions, formatters, webhook events, errors, API discovery.
+- [gateway-events-cache.md](references/gateway-events-cache.md): `Client`, hooks, pipeline knobs,
+  `Context`, `fetch_members`, collectors, cache, `CacheBackend` epoch contract.
+- [rest-requests-builders.md](references/rest-requests-builders.md): `RestClient`, request bodies,
+  `RawRequest`, retries and rate limits, `allowed_mentions`, Components V2, buttons, selects,
+  embeds, Component Embed.
+- [interactions.md](references/interactions.md): `Interaction`, `InteractionResponse`,
+  `EndpointReply`, responder state, HTTP endpoint, `AppFramework`, modals, commands.
+- [voice-sharding.md](references/voice-sharding.md): voice flow, transport crypto, DAVE,
+  `AudioPlayer`, `VoiceFrameSink`, in-process and multi-process sharding, `IdentifyGate`.
+- [migration-2x-to-3.md](references/migration-2x-to-3.md): 2.x → 3.0 map and behaviour changes.
+- [contributing.md](references/contributing.md): working on the crate (code rules, docs, CI gates).
+- [pitfalls-and-status.md](references/pitfalls-and-status.md): mistakes, known limits, live tests.

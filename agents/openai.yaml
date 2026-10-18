@@ -1,4 +1,4 @@
 interface:
-  display_name: "Discordrs Dev"
-  short_description: "Build and explain discordrs 2.0.2 bots and library work."
-  default_prompt: "Use $discordrs-dev to build, debug, explain, review, or document discordrs 2.0.2 Gateway, AppFramework interactions, Webhook Events, REST, cache, collectors, sharding, voice, DAVE, docs, coverage, or release work."
+  display_name: "discord.rs Dev (3.0)"
+  short_description: "Build, debug, and migrate discordrs 3.0 Discord bots"
+  default_prompt: "Use $discordrs-dev to build, debug, review, or migrate a Rust Discord bot on discordrs 3.0.0 (gateway events, REST request types, Components V2, slash commands, the interactions endpoint, voice, sharding) or to change the discordrs crate itself."
