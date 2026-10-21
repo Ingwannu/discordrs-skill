@@ -1,4 +1,4 @@
-# REST, request bodies, and builders (discord.rs 3.0.0)
+# REST, request bodies, and builders (discord.rs 3.1.0)
 
 No feature needed. Source: `src/http.rs` (transport), `src/http/<domain>.rs` (endpoints),
 `src/http/routes.rs` (route manifest), `src/request/` (bodies), `src/builders/`. Docs:
@@ -183,9 +183,10 @@ Components V2 channel helpers (`send_container_message`, `send_to_channel`, `sen
 `edit_message_with_container`), interaction message callbacks (types 4 and 7, not `Raw`),
 follow-ups, and `@original`/follow-up edits. An explicit value (or explicit `null` on an edit)
 wins. With no default configured, Discord's own default applies (mentions in content ping).
-**Not covered:** inline responses returned from the HTTP interactions endpoint (`EndpointReply::
-Inline`) are encoded without the client default, so set `allowed_mentions` on those
-`InteractionMessage`s yourself.
+**Inline HTTP-endpoint replies** (`EndpointReply::Inline`) never use the `RestClient` default:
+set it on the endpoint too with `InteractionsEndpointBuilder::default_allowed_mentions` (3.1.0;
+same rule: types 4 and 7 only, an explicit value wins, `Raw` is sent as written), or set
+`allowed_mentions` on each inline message. On 3.0.0 only the per-message route exists.
 
 ## Message builders and Components V2
 

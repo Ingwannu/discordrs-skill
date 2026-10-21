@@ -1,8 +1,8 @@
-# discord.rs 3.0.0 API overview
+# discord.rs 3.1.0 API overview
 
-Package and import name `discordrs`, brand "discord.rs". Version 3.0.0, published 2026-10-18
-(source tag `v3.0.0`, commit `84e6721`). MSRV 1.88 (all features), edition 2021,
-MIT OR Apache-2.0. Docs: <https://docs.rs/discordrs/3.0.0>; guide site in the repo under
+Package and import name `discordrs`, brand "discord.rs". Version 3.1.0 (2026-10-21; additive over
+3.0.0 of 2026-10-18, tag `v3.0.0`). MSRV 1.88 (all features), edition 2021,
+MIT OR Apache-2.0. Docs: <https://docs.rs/discordrs/3.1.0>; guide site in the repo under
 `discordrsdocs/` (English) and `discordrsdocs/ko/` (Korean).
 
 ## Features
@@ -15,9 +15,9 @@ MIT OR Apache-2.0. Docs: <https://docs.rs/discordrs/3.0.0>; guide site in the re
 | `sharding` | `ShardingManager`, `ShardSupervisor`, multi-process `sharding::process` | `gateway` |
 | `zstd-stream` | zstd transport compression for the gateway | `gateway` |
 | `interactions` | axum 0.8 HTTP interactions endpoint, `AppFramework`, Ed25519 verification | |
-| `voice` | voice gateway/UDP runtime, transport crypto, Opus decode, `AudioPlayer` API | |
+| `voice` | voice gateway/UDP runtime, transport crypto, DAVE end-to-end encryption (`davey`/OpenMLS, since 3.1.0), Opus decode, `AudioPlayer` API | |
 | `voice-encode` | PCM → Opus encoding (`AudioPlayer::play` needs it) | `voice` |
-| `dave` | DAVE/MLS end-to-end media encryption via `davey` | `voice` |
+| `dave` | alias of `voice` since 3.1.0 (kept so `["voice", "dave"]` builds; was the opt-in DAVE feature in 3.0.0) | `voice` |
 
 Always available without features: models, `request` bodies, builders, `RestClient`, command
 builders, parsers (`decode_interaction`), permissions, formatters, webhook-event parsing, OAuth2.
@@ -25,6 +25,7 @@ builders, parsers (`decode_interaction`), permissions, formatters, webhook-event
 ```toml
 [dependencies]
 discordrs = { version = "3", features = ["gateway"] }        # gateway bot (+ default cache)
+# discordrs = { version = "3.1", features = ["gateway", "voice", "voice-encode"] } # music bot
 # discordrs = { version = "3", features = ["interactions"] } # HTTP interactions endpoint
 # discordrs = "3"                                            # REST-only tool
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
@@ -51,7 +52,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 | `formatters` | mentions, timestamps, markdown, `escape_markdown`, `clean_content` |
 | `command` | slash/user/message/entry-point builders, `command::limits` |
 | `bitfield` | `Permissions`, `MessageFlags`, `ChannelFlags`, `Intents`, flag constant modules |
-| `voice`, `voice::player`, `voice_runtime` | voice state, playback pipeline, UDP runtime |
+| `voice`, `voice::player`, `voice_runtime` | voice state, playback pipeline, UDP runtime and its DAVE session |
 | `sharding`, `sharding::process` | in-process and multi-process sharding |
 | `webhook_events` | Discord Webhook Events (Events URL) payloads |
 | `oauth2` | `OAuth2Client`, authorization URLs, token exchange |

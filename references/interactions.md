@@ -1,4 +1,4 @@
-# Interactions, commands, and modals (discord.rs 3.0.0)
+# Interactions, commands, and modals (discord.rs 3.1.0)
 
 Interactions arrive either over the gateway (`EventKind::InteractionCreate`, hook
 `interaction_create(ctx, &Interaction)`) or as signed HTTP POSTs to your endpoint (`interactions`
@@ -77,7 +77,9 @@ Return `Accepted` only when the initial response goes over REST: after `command.
 / `defer(&rest)` succeeded, or when a task you spawned will send it within Discord's 3 s window.
 `Accepted` with no REST response leaves the interaction unanswered and Discord shows "This
 interaction failed". `EndpointReply` has no `Serialize`, so it cannot be posted as a callback.
-Inline responses are encoded **without** the REST client's default `allowed_mentions`: set
+Inline responses do not use the REST client's default `allowed_mentions`; give the endpoint its
+own with `InteractionsEndpointBuilder::default_allowed_mentions(..)` (3.1.0, applies to raw and
+typed handlers and `AppFramework` routes, message callbacks only, an explicit value wins), or set
 `allowed_mentions` on inline messages that echo user input.
 
 ## `InteractionResponder` (both transports)
@@ -150,15 +152,18 @@ impl EventHandler for Commands {
 - Body limit 1 MiB per request (`DEFAULT_INTERACTION_BODY_LIMIT`);
   `InteractionsEndpointBuilder::new(key).body_limit(bytes).build_typed(handler)`. A proxy in front
   must allow the same size; bound concurrency there if needed.
+- `InteractionsEndpointBuilder::default_allowed_mentions(AllowedMentions)` (3.1.0): the inline
+  counterpart of `RestClientBuilder::default_allowed_mentions`; without it the endpoint encodes
+  inline replies with no default, as 3.0.0 did.
 - The handler type must be `Clone + Send + Sync + 'static`. Serve with axum 0.8.
 
 ```rust
 // features: interactions
 use discordrs::request::InteractionMessage;
 use discordrs::{
-    DiscordError, EndpointReply, Interaction, InteractionContextData, InteractionResponder,
-    InteractionResponse, InteractionsEndpointBuilder, ModalBuilder, RestClient, TextInputBuilder,
-    TextInputStyle, TypedInteractionHandler,
+    AllowedMentions, DiscordError, EndpointReply, Interaction, InteractionContextData,
+    InteractionResponder, InteractionResponse, InteractionsEndpointBuilder, ModalBuilder,
+    RestClient, TextInputBuilder, TextInputStyle, TypedInteractionHandler,
 };
 
 #[derive(Clone)]
@@ -194,6 +199,8 @@ impl TypedInteractionHandler for Tickets {
 async fn serve(public_key: &str, rest: RestClient) -> Result<(), DiscordError> {
     let router = InteractionsEndpointBuilder::new(public_key)
         .body_limit(2 * 1024 * 1024)
+        // 3.1.0: inline replies get this default; `{}` lets Discord parse no mentions.
+        .default_allowed_mentions(AllowedMentions::default())
         .build_typed(Tickets { rest })?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
     axum::serve(listener, router).await?;

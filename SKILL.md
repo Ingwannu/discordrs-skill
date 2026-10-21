@@ -1,18 +1,20 @@
 ---
 name: discordrs-dev
-description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.0, and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice/DAVE/AudioPlayer, sharding, or upgrading 2.x code to 3.0.
+description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.1.0), and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, or upgrading 2.x or 3.0 code.
 ---
 
-# discordrs-dev (discord.rs 3.0.0)
+# discordrs-dev (discord.rs 3.1.0)
 
-Crate `discordrs` (brand "discord.rs"), version 3.0.0 (crates.io 2026-10-18, tag `v3.0.0`),
-MSRV 1.88, async on Tokio. Source: <https://github.com/Ingwannu/discord.rs>; API docs on docs.rs;
+Crate `discordrs` (brand "discord.rs"), version 3.1.0 (released 2026-10-21; 3.0.0 was
+2026-10-18), MSRV 1.88, async on Tokio. 3.1.0 is additive over 3.0.0 (working voice in DAVE
+channels, receive-loop fixes, an endpoint `allowed_mentions` default). Source: <https://github.com/Ingwannu/discord.rs>; API docs on docs.rs;
 guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
 
 ## First steps
 
 1. Read the project's `Cargo.toml` / `Cargo.lock` for the discordrs version and features. This
-   skill is exact for 3.0.0. For 2.x code, read [migration-2x-to-3.md](references/migration-2x-to-3.md).
+   skill is exact for 3.1.0; on 3.0.0 everything holds except the 3.1 additions listed in
+   [migration-2x-to-3.md](references/migration-2x-to-3.md) ("3.0.0 → 3.1.0"), which also maps 2.x code.
    For a newer version, check its `CHANGELOG.md` before trusting details here.
 2. Pick the runtime lane (below), then open only the reference you need.
 3. Prefer typed APIs: never hand-write JSON when a `discordrs::request` type, builder, or method
@@ -27,7 +29,7 @@ guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
 | HTTP interactions endpoint (serverless-style slash app) | `interactions` | `try_typed_interactions_endpoint(public_key, AppFramework::builder()...build())` → axum 0.8 `Router` | [interactions.md](references/interactions.md) |
 | REST-only tool (register commands, send messages, admin) | none (default) | `RestClient::new(token, Some(app_id))` | [rest-requests-builders.md](references/rest-requests-builders.md) |
 | Webhook Events (Events URL) | none (`interactions` for `verify_discord_signature`) | verify signature, then `parse_webhook_event_payload` | [api-overview.md](references/api-overview.md) |
-| Voice / music | `gateway`, `voice`, `voice-encode` (`dave` for E2EE) | `ctx.join_voice` → own VOICE_STATE + VOICE_SERVER updates → `connect_voice_runtime(VoiceRuntimeConfig)` → `AudioPlayer` (non-DAVE calls only) | [voice-sharding.md](references/voice-sharding.md) |
+| Voice / music | `gateway`, `voice` (includes DAVE), `voice-encode` | `ctx.join_voice` → both voice updates arrived → `ctx.connect_voice_runtime_with_dave(guild, bot_user)` → `AudioPlayer` | [voice-sharding.md](references/voice-sharding.md) |
 | Large bots | `sharding` | `spawn_auto_shards()`, `sharding::process` | [voice-sharding.md](references/voice-sharding.md) |
 
 ```rust
@@ -99,8 +101,12 @@ Register the `/ping` command once with `RestClient::bulk_overwrite_global_comman
   endpoint, and `InteractionResponder`. HTTP handlers return `EndpointReply::{Inline, Accepted}`.
   Each interaction has one shared response state (`Unacknowledged → InFlight →
   Deferred/Replied/Acknowledged`, or `Uncertain` after an ambiguous failure, where a retry is
-  safe and Discord's 40060 settles it). Inline endpoint replies skip the client's default
-  `allowed_mentions`.
+  safe and Discord's 40060 settles it). Inline endpoint replies get a default
+  `allowed_mentions` only from `InteractionsEndpointBuilder::default_allowed_mentions` (3.1.0),
+  not from the `RestClient`.
+- **Voice runs DAVE.** Discord requires DAVE (MLS end-to-end encryption) outside Stage channels;
+  `connect_voice_runtime_with_options` / `Context::connect_voice_runtime_with_dave` run it for
+  you, while `connect_voice_runtime` keeps 3.0.0's leave-it-to-you behaviour.
 - **Async traits without async-trait.** `EventHandler`, `CacheBackend`, `InteractionHandler`,
   `TypedInteractionHandler`, `CachedManager` use `async fn`; not object safe (`Arc<B>`, not
   `Arc<dyn ..>`).
@@ -122,9 +128,12 @@ Register the `/ping` command once with `RestClient::bulk_overwrite_global_comman
 7. Request privileged intents (`GUILD_MEMBERS`, `GUILD_PRESENCES`, `MESSAGE_CONTENT`) only when
    needed, and enable them in the Developer Portal too.
 8. No std `Mutex` guard or `ctx.voice()` lock across `.await`.
-9. Bots set presence with `BotActivity` (name, type, state, url only); no activity buttons.
-10. Validate locally with `try_build()` / `validate()` before sending user-built content.
-11. When changing the crate itself, follow [contributing.md](references/contributing.md): lint
+9. Voice: connect with the `*_with_dave` / `*_with_options` entry points, and keep the `davey`
+   log target at `info` or coarser (`RUST_LOG=info,davey=info`): its trace output contains call
+   media keys.
+10. Bots set presence with `BotActivity` (name, type, state, url only); no activity buttons.
+11. Validate locally with `try_build()` / `validate()` before sending user-built content.
+12. When changing the crate itself, follow [contributing.md](references/contributing.md): lint
     rules, Why-comments + Decision Log, en+ko docs, snippet harness, route manifest, gates.
 
 ## Pitfalls (details in [pitfalls-and-status.md](references/pitfalls-and-status.md))
@@ -136,8 +145,14 @@ Register the `/ping` command once with `RestClient::bulk_overwrite_global_comman
 - Received activity `buttons` are label strings; bots cannot send buttons.
 - `IS_COMPONENTS_V2` forbids `content`/embeds/poll: put text in `TextDisplayBuilder`.
 - `AllowedMentions::default()` suppresses all mentions; no `allowed_mentions` pings everything.
-- `AudioPlayer::play` needs `voice-encode`, and it plays nothing on DAVE-negotiated calls
-  (custom DAVE sink needed). Voice, DAVE, and sharding were not live-tested for 3.0.0.
+- `AudioPlayer::play` needs `voice-encode`. On a DAVE runtime it waits in `AutoPaused` until the
+  MLS group has keys; a bot alone in a channel waits until someone joins (that is not a hang).
+  Watch `player.connection_events()` for `SendFailed`/`Recovered`.
+- `connect_voice_runtime` / `Context::connect_voice_runtime` in a DAVE channel: plain sends and
+  receives fail (3.0.0 behaviour). A 4017 close means DAVE was required.
+- Receive loops no longer error on RTCP or undecryptable packets; check `receive_stats()`.
+- Live-tested for 3.1.0: DAVE send (heard in an official client) and receive. Not live-tested:
+  sharding, the HTTP interactions endpoint, modal/autocomplete replies.
 - Serial dispatch (default) runs one handler at a time per shard: spawn long collector waits.
 - Default cache keeps at most 1,000 guilds (`CacheConfig::max_guilds`).
 
@@ -159,8 +174,10 @@ against the published crate (see `README.md`).
   embeds, Component Embed.
 - [interactions.md](references/interactions.md): `Interaction`, `InteractionResponse`,
   `EndpointReply`, responder state, HTTP endpoint, `AppFramework`, modals, commands.
-- [voice-sharding.md](references/voice-sharding.md): voice flow, transport crypto, DAVE,
-  `AudioPlayer`, `VoiceFrameSink`, in-process and multi-process sharding, `IdentifyGate`.
-- [migration-2x-to-3.md](references/migration-2x-to-3.md): 2.x → 3.0 map and behaviour changes.
+- [voice-sharding.md](references/voice-sharding.md): voice flow, DAVE runtime, davey logging,
+  transport crypto, receive skipping, `AudioPlayer`, `VoiceFrameSink`, live voice record,
+  in-process and multi-process sharding, `IdentifyGate`.
+- [migration-2x-to-3.md](references/migration-2x-to-3.md): 2.x → 3.0 map, behaviour changes,
+  and 3.0.0 → 3.1.0.
 - [contributing.md](references/contributing.md): working on the crate (code rules, docs, CI gates).
 - [pitfalls-and-status.md](references/pitfalls-and-status.md): mistakes, known limits, live tests.

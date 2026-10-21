@@ -78,7 +78,7 @@ in the code, the guide, or `docs/design/`:
 
 ## Docs move with the code (same change)
 
-- `CHANGELOG.md` (Keep a Changelog; a new section above `## 3.0.0`) and the condensed
+- `CHANGELOG.md` (Keep a Changelog; a new section above the latest, `## 3.1.0`) and the condensed
   `discordrsdocs/docs/guide/changelog.md`.
 - `README.md`, `USAGE.md`, the API pages in `discordrsdocs/docs/api/`, guides in
   `discordrsdocs/docs/guide/`, and the Korean copies under `discordrsdocs/ko/` where one exists
@@ -140,7 +140,7 @@ cargo test --release --all-features --locked --test interaction_decode_footprint
 Allocation counts, bytes, retained, and peak are deterministic; times and RSS are not. A
 deterministic regression over 2% needs a recorded reason (see the `note`s in
 `ci/perf-gates.json`). Checkpoint C inherits B and overrides the rows phase 4 C changed; the
-guides show `--checkpoint B`, and 3.0.0 is past C, so check C. These gates are run by hand
+guides show `--checkpoint B`, and 3.x is past C, so check C. These gates are run by hand
 before merging gateway/cache/collector/outbound work: the `perf-report` CI job only posts the
 diff and gate status and never fails (`continue-on-error`). `interaction_decode_footprint` is a
 real test that fails above its allocation cap. Method and baselines:
@@ -162,3 +162,11 @@ public key file contents into docs, tests, fixtures, issues, or chat. Live verif
 no tokens or guild names (see `docs/design/perf-baseline.md` §11). Read tokens from the
 environment. New diagnostics must keep the token scrubbing (`route_token`, `scrub_token`,
 `redact_path_tokens`) and redacted `Debug` output.
+
+Voice/DAVE (3.1.0, `src/voice_runtime/dave.rs`, design in `docs/design/dave-voice.md`): every
+davey call the runtime makes runs under the scoped `DaveyTraceFilter` dispatcher (davey 0.1.5
+logs media keys at trace level), so route new davey calls through it; runtime key material uses
+`zeroize`/`Zeroizing` and stays out of `Debug`; logs of received packets carry header fields and
+the reason, never the payload. DAVE changes are tested hermetically with two independent davey
+sessions and the test voice gateway; `tests/live_voice_dave.rs` stays `#[ignore]` and needs an
+explicitly prepared voice session.

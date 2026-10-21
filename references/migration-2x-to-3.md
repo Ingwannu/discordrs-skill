@@ -1,4 +1,4 @@
-# Migrating discord.rs 2.x → 3.0
+# Migrating discord.rs 2.x → 3.0, and 3.0.0 → 3.1.0
 
 The authoritative guide is `discordrsdocs/docs/guide/migration-3.0.md` in the crate repo (Korean:
 `discordrsdocs/ko/guide/migration-3.0.md`); every 3.0 snippet in it is compiled by
@@ -86,8 +86,8 @@ but lived on `main`. This file is the condensed map; the 3.0-side code is in the
 - Default `allowed_mentions` also apply to `edit_webhook_message` and the V2 channel helpers.
 - Cache: partial updates never create entries; guild roles follow GUILD_ROLE_* events.
 - Voice transport encryption uses Discord's nonce layout (2.x put the counter at the wrong end,
-  so real voice servers rejected every packet). Fixed and pinned by known-answer vectors, not
-  live-tested in 3.0.0.
+  so real voice servers rejected every packet). Fixed and pinned by known-answer vectors; first
+  heard live with 3.1.0's DAVE runtime.
 
 Deprecated in 3.0 (removed in 4.0): `Snowflake`, `PermissionsBitField`,
 `MessageSelectDefaultValue`, `ButtonBuilder`, `InteractionReplyData`,
@@ -96,3 +96,26 @@ interaction helpers, the panicking endpoint constructors, `CheckboxBuilder::chec
 `ModalBuilder::add_text_input_row`, `batch_edit_application_command_permissions`, `model::X` for
 moved request bodies, 35 REST renames, and `create_guild` / `delete_guild` /
 `create_guild_from_template` / `modify_guild_mfa_level` (Discord removed guild creation by apps).
+
+## 3.0.0 → 3.1.0
+
+A minor release: nothing breaks (new items, a defaulted trait method, `#[non_exhaustive]` types).
+Bump to `discordrs = "3.1"`; `features = ["voice", "dave"]` still builds (`dave` is now an alias,
+`voice` includes davey). What to change to benefit:
+
+| Area | 3.0.0 | 3.1.0 |
+|---|---|---|
+| Voice in DAVE (non-Stage) channels | `connect_voice_runtime` advertised DAVE but ran no MLS: `AudioPlayer` played nothing, plain send/recv errored | `ctx.connect_voice_runtime_with_dave(guild, user)` or `connect_voice_runtime_with_options(config, VoiceConnectOptions::new(channel_id))` run DAVE; `connect_voice_runtime` keeps the old behaviour |
+| Playback before keys | sends errored per frame (one warning each) | sends refuse until a media key is in use; `AudioPlayer` waits in `AutoPaused`, then plays from the first frame; `connection_events()` reports `SendFailed`/`Recovered` once per stretch; `VoiceFrameSink::is_playable` |
+| `NoSubscriberBehavior::Stop` on a DAVE runtime | n/a | call `handle.wait_until_playable().await` before `play` |
+| Receive errors | RTCP and undecryptable packets returned errors (ended `?` loops) | skipped; watch `receive_stats()` and `dave_status().undecryptable_packets` |
+| Gateway voice state | the context applied every member's VOICE_STATE_UPDATE; a server update before the state was lost; call `connect_voice` before `join_voice` | only the bot's own state; server update kept in either order; `join_voice` tracks the guild; `ctx.voice_runtime_config(..)` is `Some` when ready |
+| 4017 close | "voice websocket closed unexpectedly" | error naming DAVE and the entry point to use |
+| DAVE status | — | `dave_status()`, `subscribe_dave_status()`, `is_playable()`, `wait_until_playable()`, `dave_verification_code()` |
+| Logging | — | keep `davey` at `info` or coarser (trace logs media keys); install the subscriber before connecting |
+| Endpoint mentions | inline replies had no default `allowed_mentions` | `InteractionsEndpointBuilder::default_allowed_mentions(..)` |
+| Respond later from `AppFramework` | docs showed spawn + inline `defer` (racy) | defer over REST, spawn, return `EndpointReply::Accepted` |
+
+Do not mix: on a `with_options` runtime, don't drive MLS yourself (`VoiceDaveySession`,
+`send_dave_*`); custom frame encryption via `send_opus_frame_with_dave` /
+`recv_voice_packet_with_dave` still works.

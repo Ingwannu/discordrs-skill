@@ -1,7 +1,7 @@
 # discordrs-skill
 
 Agent skill `discordrs-dev` for building Discord bots with
-[discord.rs](https://github.com/Ingwannu/discord.rs) (crate `discordrs`) **3.0.0** and for
+[discord.rs](https://github.com/Ingwannu/discord.rs) (crate `discordrs`) **3.1.0** (3.x) and for
 contributing to the crate. Works with Codex (`$discordrs-dev`, `agents/openai.yaml`) and Claude
 Code (Skill tool, `SKILL.md` frontmatter).
 
@@ -37,8 +37,8 @@ structs, impls), not statement fragments. Code that must not be compiled (TOML, 
 "before" code) uses another fence language.
 
 ```bash
-scripts/check-examples.sh                                   # discordrs =3.0.0 from crates.io
-DISCORDRS_VERSION=3.0.1 scripts/check-examples.sh           # another published version
+scripts/check-examples.sh                                   # discordrs =3.1.0 from crates.io
+DISCORDRS_VERSION=3.1.1 scripts/check-examples.sh           # a later published version
 DISCORDRS_PATH=$HOME/discord.rs scripts/check-examples.sh   # an unpublished checkout
 ```
 
@@ -48,8 +48,11 @@ The script groups blocks by feature set into scratch crates under `/tmp/discordr
 uses no token, and contacts nothing but crates.io. A cold run takes a few minutes (dependencies,
 including `davey`/OpenMLS); later runs about 20-45 s per feature set.
 
-Result for this revision (2026-10-18, rustc 1.97.1, discordrs 3.0.0 from crates.io): 7 feature
-sets, 34 blocks, all compiled.
+Result for this revision (2026-10-21, rustc 1.97.1): 7 feature sets, 35 blocks, all compiled
+against the local 3.1.0 release commit (`DISCORDRS_PATH=/home/ubuntu/discord.rs`, `dbd7395`),
+because 3.1.0 was not on crates.io yet. Once it is published, the default run (`=3.1.0` from
+crates.io) is the check to repeat. The previous revision compiled 34 blocks against 3.0.0 from
+crates.io.
 
 ## Updating for a new discordrs release
 

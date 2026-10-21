@@ -1,4 +1,4 @@
-# Gateway, events, collectors, and cache (discord.rs 3.0.0)
+# Gateway, events, collectors, and cache (discord.rs 3.1.0)
 
 Feature `gateway` (plus default `cache`; `collectors` for collectors). Source:
 `src/gateway/bot.rs` (builder, `Context`, `EventHandler`), `src/gateway/bot/pipeline.rs`,
@@ -230,6 +230,12 @@ fn configure<H: EventHandler>(token: &str, handler: H) -> ClientBuilder {
   `update_presence(status)` (status string only; `update_presence_typed(UpdatePresence)` for
   activities), `join_voice`/`leave_voice`, `request_channel_info(..)`. Guild-scoped commands are
   routed to the shard owning the guild when it runs in the same process.
+- Voice (`voice` feature): `ctx.join_voice(..)` also tracks the guild's connection;
+  `ctx.voice_runtime_config(guild_id, user_id)` is `Some` once the bot's VOICE_STATE_UPDATE and
+  the VOICE_SERVER_UPDATE arrived (either order); then
+  `ctx.connect_voice_runtime_with_dave(guild_id, user_id)`. Since 3.1.0 the context tracks only
+  the bot's own voice state (user from READY); cache and hooks still see every member's. See
+  `voice-sharding.md`.
 - `ctx.voice()` (`voice` feature) → `Arc<RwLock<VoiceManager>>`; don't hold its write lock across
   `.await`, it stalls the shard's processor.
 

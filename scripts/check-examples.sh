@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Compile every ```rust block of the skill against the published discordrs.
 #
-#   scripts/check-examples.sh                 # discordrs =3.0.0 from crates.io
-#   DISCORDRS_VERSION=3.0.1 scripts/check-examples.sh
+#   scripts/check-examples.sh                 # discordrs =3.1.0 from crates.io
+#   DISCORDRS_VERSION=3.1.1 scripts/check-examples.sh
 #   DISCORDRS_PATH=$HOME/discord.rs scripts/check-examples.sh   # unpublished checkout
 #   CHECK_DIR=/tmp/elsewhere scripts/check-examples.sh
 #
@@ -13,7 +13,7 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 check_dir="${CHECK_DIR:-/tmp/discordrs-skill-check}"
-version="${DISCORDRS_VERSION:-3.0.0}"
+version="${DISCORDRS_VERSION:-3.1.0}"
 export PATH="$HOME/.cargo/bin:$PATH"
 # One target dir for every feature set: dependencies compile once.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$check_dir/target}"

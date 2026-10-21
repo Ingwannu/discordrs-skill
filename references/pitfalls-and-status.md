@@ -1,4 +1,4 @@
-# Pitfalls, known limits, and what was live-tested (discord.rs 3.0.0)
+# Pitfalls, known limits, and what was live-tested (discord.rs 3.1.0)
 
 ## Common mistakes
 
@@ -22,7 +22,8 @@ Interactions
   the inline response is recorded only after the route returns, so an early edit fails with
   "interaction has not been acknowledged". Defer over REST and return `EndpointReply::Accepted`.
 - Relying on the REST client's default `allowed_mentions` for inline HTTP-endpoint replies: they
-  are encoded without it.
+  never use it. Set `InteractionsEndpointBuilder::default_allowed_mentions` (3.1.0) or
+  `allowed_mentions` per message.
 - Expecting `AppFramework` `component`/`modal` routes to match a `custom_id` prefix: matching is
   exact; use `fallback(..)` for dynamic ids.
 - Requiring a single checkbox, or `disabled` modal inputs: Discord rejects both; use a one-option
@@ -79,13 +80,27 @@ REST and builders
 Voice and sharding
 
 - `AudioPlayer::play` without the `voice-encode` feature returns `DiscordError::Voice`.
-- DAVE-negotiated calls: the default config offers DAVE, and when Discord enables it, plain sends
-  and receives fail and `AudioPlayer` via `subscribe_runtime` plays nothing (it only logs). See
-  "DAVE caveat" in `voice-sharding.md`.
-- `Context::connect_voice_runtime` can pick up another member's voice session id; build
-  `VoiceRuntimeConfig` from your own user's VOICE_STATE_UPDATE.
-- Starting the voice runtime before both VOICE_STATE_UPDATE (session id) and VOICE_SERVER_UPDATE
-  (token, endpoint) arrived.
+- Connecting with `connect_voice_runtime` / `Context::connect_voice_runtime` in a normal
+  (non-Stage) channel: they keep 3.0.0's behaviour (advertise DAVE, run no MLS session), so in a
+  DAVE call plain sends and receives fail. Use `Context::connect_voice_runtime_with_dave` or
+  `connect_voice_runtime_with_options(config, VoiceConnectOptions::new(channel_id))`. A 4017
+  close means Discord required DAVE. (On 3.0.0 there is no runtime DAVE: `AudioPlayer` plays
+  nothing in DAVE channels; upgrade to 3.1.)
+- Driving MLS by hand (`VoiceDaveySession`, `send_dave_*`) on a `with_options` runtime: it already
+  sends its own key package; the gateway would see two.
+- Treating `AutoPaused` as a hang: on a DAVE runtime the player waits until the MLS group has a
+  media key; a bot alone in the channel waits until someone joins. With
+  `NoSubscriberBehavior::Stop`, `wait_until_playable().await` before `play`.
+- Expecting receive errors for key problems: since 3.1.0 RTCP, forged, malformed, and
+  undecryptable packets are skipped; watch `receive_stats()` (`non_voice_packets`,
+  `rejected_packets`) and `dave_status().undecryptable_packets`, and pass a `max_len` that fits.
+- Enabling trace logging for `davey` (`RUST_LOG=trace` without `davey=info`): it writes call media
+  keys; install the tracing subscriber before connecting voice so the runtime's filter applies.
+- Starting the voice runtime before both the bot's VOICE_STATE_UPDATE and the VOICE_SERVER_UPDATE
+  arrived: wait until `ctx.voice_runtime_config(guild_id, user_id)` is `Some`. (On 3.0.0 the
+  context also applied other members' voice states, so build the config yourself there.)
+- Expecting a voice reconnect to resume: there is no RESUME; reconnecting is a fresh IDENTIFY and
+  MLS join.
 - Custom `VoiceFrameSink` that transmits before its future completes or blocks in `poll`.
 - Process sharding: deploying a 3.0 parent with 2.x children (IPC frames differ), or not wiring
   `GatewayConnectionConfig::identify_gate(child.identify_gate())` in children.
@@ -94,11 +109,13 @@ Voice and sharding
 
 ## Known limits and caveats
 
-- Voice (send and receive, both transport modes) and DAVE were **not** exercised against live
-  Discord for 3.0.0. The transport fix is backed by external known-answer vectors and parity with
-  @discordjs/voice and Songbird. The ignored DAVE MLS-transition harness
-  (`tests/live_voice_dave.rs`) passed live for 2.0.0 (2026-05-02, MLS only) and must be rerun
-  before claiming DAVE interop for 3.x. `AudioPlayer` has no built-in DAVE path.
+- Voice: 3.1.0's DAVE runtime was live-checked once in a regular channel (send heard in an
+  official client, receive decrypted; see the record below). Not yet run: the ignored full harness
+  `tests/live_voice_dave.rs`. davey 0.1.x does not check a welcome's members against the call; there is no voice
+  RESUME. The crate's voice guide (`discordrsdocs/docs/api/voice.md`, "Verification status") and
+  the CHANGELOG still say only receiving was run live; `docs/design/perf-baseline.md` records the
+  later send check.
+- davey 0.1.5 logs media keys at trace level; the runtime's scoped filter is a mitigation only.
 - Sharding (in-process and multi-process) was not live-tested; hermetic harnesses only.
 - Modal and autocomplete responses, guild-channel writes, and the HTTP interactions endpoint were
   not live-tested (hermetic tests only).
@@ -113,17 +130,15 @@ Voice and sharding
 - Deadlines from Discord: channel obfuscation is mandatory from 2026-11-16 (`is_obfuscated()`,
   `ChannelPermissions::Obfuscated`); `CurrentUserGuildsQuery::shard` is required for
   `GET /users/@me/guilds` with large bot sharding since 2026-09-15.
-- Parts of the crate `README.md` feature list still use 2.x wording (for example "Event enum
-  dispatch"); trust `CHANGELOG.md` "3.0.0", the API pages under `discordrsdocs/docs/api/`, the
-  migration guide, and the code.
 - API coverage at release: 234/234 REST method+path routes of discord-api-docs `3714862`
   (2026-10-09). Gateway receive events and REST routes are re-compared weekly by
   `ci/api_drift.py` (report-only); a dispatch newer than the crate arrives as `EventKind::Unknown`
   with its raw JSON.
 
-## Live verification record (docs/design/perf-baseline.md §11, 2026-10-13, main `5a81f20`)
+## Live verification records (docs/design/perf-baseline.md §11)
 
-One production bot token (not recorded), release build of a scratch crate:
+2026-10-13, main `5a81f20`, one production bot token (not recorded), release build of a scratch
+crate:
 
 | Check | Result |
 |---|---|
@@ -131,4 +146,17 @@ One production bot token (not recorded), release build of a scratch crate:
 | Gateway 60 s and 600 s, non-privileged intents (GUILDS, GUILD_MESSAGES, GUILD_MESSAGE_REACTIONS, GUILD_VOICE_STATES, GUILD_EXPRESSIONS) | READY, 30 GUILD_CREATE, 99 dispatches of 13 types, 0 decode failures, 0 unknown; RSS 4.4 → 13.6 MB |
 | Privileged intents (GUILD_MEMBERS, GUILD_PRESENCES, MESSAGE_CONTENT), 120 s after the activity-buttons fix | GUILD_CREATE 30/30, 493 PRESENCE_UPDATE, 0 decode failures; RSS 22.6 MB (before the fix 11/30 GUILD_CREATEs failed) |
 | Writes inside the app owner's DM only | open DM, create/edit message, add/remove reaction, Components V2 message with container and button, ephemeral button-interaction reply (327 ms), V2 edit without flags, delete cleanup: all passed |
-| Not verified | voice connection, guild channel writes, modal and autocomplete responses, the HTTP interactions endpoint, sharding |
+| Not verified then | voice connection, guild channel writes, modal and autocomplete responses, the HTTP interactions endpoint, sharding |
+
+2026-10-21, main `cea24e7` (receive fix rerun on `a37dbb0`), approved server, regular non-Stage
+voice channel: `Context::join_voice` → `Context::connect_voice_runtime_with_dave` → `AudioPlayer`
+(3 s 440 Hz tone, raw PCM) → receive loop.
+
+| Check | Result |
+|---|---|
+| DAVE negotiation | protocol v1, epoch 1, 0 transitions, no `last_error`, voice privacy code issued |
+| Playback timing | bot alone: no group, waited in `AutoPaused` ~80 s until a person joined, then played; person already present: playing within 20 ms |
+| Send | tone heard in an official Discord client (real interop of the runtime's DAVE frame encryption) |
+| Receive (before fix) | 63 packets of one speaker decrypted (DAVE + transport, 14 with speech); 35 `failed to decrypt AES-GCM voice packet` errors (~1/s, RTCP opened as voice); a `?` loop ended at the first |
+| Receive (after `a37dbb0`, 2 runs) | 0 errors; 33 and 110 non-voice (RTCP) packets skipped, 0 rejected, 0 DAVE failures, epoch 1 → 3 with 2 transitions handled; no speech captured in these runs |
+| Still not verified | guild channel writes, modal and autocomplete responses, the HTTP interactions endpoint, sharding, `tests/live_voice_dave.rs` |
