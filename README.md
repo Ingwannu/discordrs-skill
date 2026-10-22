@@ -1,7 +1,7 @@
 # discordrs-skill
 
 Agent skill `discordrs-dev` for building Discord bots with
-[discord.rs](https://github.com/Ingwannu/discord.rs) (crate `discordrs`) **3.1.0** (3.x) and for
+[discord.rs](https://github.com/Ingwannu/discord.rs) (crate `discordrs`) **3.1.1** (3.x) and for
 contributing to the crate. Works with Codex (`$discordrs-dev`, `agents/openai.yaml`) and Claude
 Code (Skill tool, `SKILL.md` frontmatter).
 
@@ -37,7 +37,7 @@ structs, impls), not statement fragments. Code that must not be compiled (TOML, 
 "before" code) uses another fence language.
 
 ```bash
-scripts/check-examples.sh                                   # discordrs =3.1.0 from crates.io
+scripts/check-examples.sh                                   # discordrs =3.1.1 from crates.io
 DISCORDRS_VERSION=3.1.1 scripts/check-examples.sh           # a later published version
 DISCORDRS_PATH=$HOME/discord.rs scripts/check-examples.sh   # an unpublished checkout
 ```
@@ -49,7 +49,7 @@ uses no token, and contacts nothing but crates.io. A cold run takes a few minute
 including `davey`/OpenMLS); later runs about 20-45 s per feature set.
 
 Result for this revision (2026-10-22, rustc 1.97.1): 7 feature sets, 35 blocks, all compiled
-against the published `discordrs =3.1.0` from crates.io (default run, no arguments). The
+against the published `discordrs =3.1.1` from crates.io (default run, no arguments). The
 previous revision compiled 34 blocks against 3.0.0 from crates.io.
 
 ## Updating for a new discordrs release

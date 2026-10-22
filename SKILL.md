@@ -1,12 +1,14 @@
 ---
 name: discordrs-dev
-description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.1.0), and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, or upgrading 2.x or 3.0 code.
+description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.1.x; current 3.1.1), and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, or upgrading 2.x or 3.0 code.
 ---
 
-# discordrs-dev (discord.rs 3.1.0)
+# discordrs-dev (discord.rs 3.1.1)
 
-Crate `discordrs` (brand "discord.rs"), version 3.1.0 (on crates.io since 2026-10-22, tag `v3.1.0`;
-3.0.0 was 2026-10-18), MSRV 1.88, async on Tokio. 3.1.0 is additive over 3.0.0 (working voice in DAVE
+Crate `discordrs` (brand "discord.rs"), version 3.1.1 (on crates.io since 2026-10-23, tag `v3.1.1`;
+3.1.0 was 2026-10-22, 3.0.0 2026-10-18), MSRV 1.88, async on Tokio. 3.1.1 only fixes a gateway bug in
+3.1.0 (after Discord's Reconnect opcode the bot never reconnected; see pitfalls), so use `"3.1.1"` or
+newer. 3.1.0 is additive over 3.0.0 (working voice in DAVE
 channels, receive-loop fixes, an endpoint `allowed_mentions` default). Source: <https://github.com/Ingwannu/discord.rs>; API docs on docs.rs;
 guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
 
