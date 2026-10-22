@@ -109,6 +109,13 @@ Voice and sharding
 
 ## Known limits and caveats
 
+- **3.1.0 gateway bug, fixed in 3.1.1 (on GitHub `1788c07`, not yet on crates.io as of 2026-10-23):**
+  after Discord's Reconnect (opcode 7) the client built the RESUME URL from READY's path-less
+  `resume_gateway_url` as `wss://host?v=10…`, Discord answered HTTP 400, and the client retried the
+  same URL forever, so the bot stayed offline until restarted (seen live for four hours). On 3.1.0,
+  use `[patch.crates-io] discordrs = { git = "https://github.com/Ingwannu/discord.rs", rev = "1788c07975c3b26a45f50cc6310a20e10edfc873" }`
+  or restart on repeated `Gateway connection error: … 400 Bad Request` logs.
+
 - Voice: 3.1.0's DAVE runtime was live-checked once in a regular channel (send heard in an
   official client, receive decrypted; see the record below). Not yet run: the ignored full harness
   `tests/live_voice_dave.rs`. davey 0.1.x does not check a welcome's members against the call; there is no voice
