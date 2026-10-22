@@ -1,7 +1,7 @@
 # discord.rs 3.1.0 API overview
 
-Package and import name `discordrs`, brand "discord.rs". Version 3.1.0 (2026-10-21; additive over
-3.0.0 of 2026-10-18, tag `v3.0.0`). MSRV 1.88 (all features), edition 2021,
+Package and import name `discordrs`, brand "discord.rs". Version 3.1.0 (crates.io 2026-10-22, tag `v3.1.0`;
+additive over 3.0.0 of 2026-10-18, tag `v3.0.0`). MSRV 1.88 (all features), edition 2021,
 MIT OR Apache-2.0. Docs: <https://docs.rs/discordrs/3.1.0>; guide site in the repo under
 `discordrsdocs/` (English) and `discordrsdocs/ko/` (Korean).
 

@@ -48,11 +48,9 @@ The script groups blocks by feature set into scratch crates under `/tmp/discordr
 uses no token, and contacts nothing but crates.io. A cold run takes a few minutes (dependencies,
 including `davey`/OpenMLS); later runs about 20-45 s per feature set.
 
-Result for this revision (2026-10-21, rustc 1.97.1): 7 feature sets, 35 blocks, all compiled
-against the local 3.1.0 release commit (`DISCORDRS_PATH=/home/ubuntu/discord.rs`, `dbd7395`),
-because 3.1.0 was not on crates.io yet. Once it is published, the default run (`=3.1.0` from
-crates.io) is the check to repeat. The previous revision compiled 34 blocks against 3.0.0 from
-crates.io.
+Result for this revision (2026-10-22, rustc 1.97.1): 7 feature sets, 35 blocks, all compiled
+against the published `discordrs =3.1.0` from crates.io (default run, no arguments). The
+previous revision compiled 34 blocks against 3.0.0 from crates.io.
 
 ## Updating for a new discordrs release
 

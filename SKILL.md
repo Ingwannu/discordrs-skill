@@ -5,8 +5,8 @@ description: Build, debug, review, migrate, and document Rust Discord bots and a
 
 # discordrs-dev (discord.rs 3.1.0)
 
-Crate `discordrs` (brand "discord.rs"), version 3.1.0 (released 2026-10-21; 3.0.0 was
-2026-10-18), MSRV 1.88, async on Tokio. 3.1.0 is additive over 3.0.0 (working voice in DAVE
+Crate `discordrs` (brand "discord.rs"), version 3.1.0 (on crates.io since 2026-10-22, tag `v3.1.0`;
+3.0.0 was 2026-10-18), MSRV 1.88, async on Tokio. 3.1.0 is additive over 3.0.0 (working voice in DAVE
 channels, receive-loop fixes, an endpoint `allowed_mentions` default). Source: <https://github.com/Ingwannu/discord.rs>; API docs on docs.rs;
 guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
 

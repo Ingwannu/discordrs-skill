@@ -10,7 +10,7 @@ with exactly the features they claim.
 
 Usage: extract-examples.py <skill-root> <out-dir> <discordrs-dependency-spec>
 The dependency spec is TOML for the discordrs table minus `features`, e.g.
-`version = "=3.0.0"` or `path = "/home/me/discord.rs"`.
+`version = "=3.1.0"` or `path = "/home/me/discord.rs"`.
 
 [Decision Log]
 - 목적과 의도: 스킬 문서의 모든 Rust 예제가 배포된 크레이트에서 실제로 컴파일되는지 기계적으로 확인한다.
