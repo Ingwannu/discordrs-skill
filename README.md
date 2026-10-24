@@ -18,6 +18,7 @@ Code (Skill tool, `SKILL.md` frontmatter).
 | `references/migration-2x-to-3.md` | Condensed 2.x → 3.0 map (points at the crate's compiled migration guide), 3.0.0 → 3.1.0, 3.1.x → 3.2.0 |
 | `references/contributing.md` | Rules for changing the crate itself: lints, Decision Logs, docs en/ko, snippet harness, route manifest, perf/trybuild/feature/coverage gates |
 | `references/pitfalls-and-status.md` | Common mistakes, known limits, the 3.0 live-verification record |
+| `references/bot-house-style.md` | The operator's standard bot design: modal wizards for all input, every customisation in every command, Discord limits, SQLite storage, ticket/role/verification/message patterns, startup registration, Pterodactyl deploy and the no-downtime `update` flow, review process, new-feature checklist |
 | `references/discordrs-0.4.0.md` | Compatibility stub only (see Decision Log below) |
 | `agents/openai.yaml` | Codex UI metadata |
 | `scripts/check-examples.sh`, `scripts/extract-examples.py` | Compile every Rust example against the published crate |

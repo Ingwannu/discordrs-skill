@@ -1,6 +1,6 @@
 ---
 name: discordrs-dev
-description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.2.x; current 3.2.0), and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, gateway session handoff between processes (GatewayHandoff, resume_sessions), or upgrading 2.x, 3.0, or 3.1 code.
+description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.2.x; current 3.2.0), and contribute to the crate itself. For a new bot for this operator, also apply the house style (step-by-step modal wizards, full card and button customisation in every command, SQLite storage, no-downtime hot updates). Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, gateway session handoff between processes (GatewayHandoff, resume_sessions), or upgrading 2.x, 3.0, or 3.1 code.
 ---
 
 # discordrs-dev (discord.rs 3.2.0)
@@ -21,8 +21,12 @@ guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
    also except the 3.1 additions, both listed in [migration-2x-to-3.md](references/migration-2x-to-3.md)
    ("3.1.x → 3.2.0", "3.0.0 → 3.1.0"), which also maps 2.x code.
    For a newer version, check its `CHANGELOG.md` before trusting details here.
-2. Pick the runtime lane (below), then open only the reference you need.
-3. Prefer typed APIs: never hand-write JSON when a `discordrs::request` type, builder, or method
+2. Building or extending a bot for this operator: follow [bot-house-style.md](references/bot-house-style.md)
+   by default. It covers modal wizards for all input, every customisation in every command (image rule,
+   accent, dividers, button label, emoji, colour and position, extra buttons), limits, storage,
+   startup registration, and the no-downtime `update` flow.
+3. Pick the runtime lane (below), then open only the reference you need.
+4. Prefer typed APIs: never hand-write JSON when a `discordrs::request` type, builder, or method
    exists; never invent a method; look it up ([api-overview.md](references/api-overview.md),
    "Finding the right function").
 
@@ -199,3 +203,5 @@ against the published crate (see `README.md`).
   3.0.0 → 3.1.0, and 3.1.x → 3.2.0.
 - [contributing.md](references/contributing.md): working on the crate (code rules, docs, CI gates).
 - [pitfalls-and-status.md](references/pitfalls-and-status.md): mistakes, known limits, live tests.
+- [bot-house-style.md](references/bot-house-style.md): the operator's standard bot design (modal wizards,
+  customise everything, limits, storage, feature patterns, deploy and hot update, process, checklist).
