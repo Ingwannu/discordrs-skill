@@ -78,7 +78,7 @@ in the code, the guide, or `docs/design/`:
 
 ## Docs move with the code (same change)
 
-- `CHANGELOG.md` (Keep a Changelog; a new section above the latest, `## 3.1.0`) and the condensed
+- `CHANGELOG.md` (Keep a Changelog; a new section above the latest, `## 3.2.0 - 2026-10-24`; unreleased work goes under `## X.Y.Z - Unreleased` and is dated on release day) and the condensed
   `discordrsdocs/docs/guide/changelog.md`.
 - `README.md`, `USAGE.md`, the API pages in `discordrsdocs/docs/api/`, guides in
   `discordrsdocs/docs/guide/`, and the Korean copies under `discordrsdocs/ko/` where one exists

@@ -1,7 +1,8 @@
-# Gateway, events, collectors, and cache (discord.rs 3.1.0)
+# Gateway, events, collectors, and cache (discord.rs 3.2.0)
 
 Feature `gateway` (plus default `cache`; `collectors` for collectors). Source:
 `src/gateway/bot.rs` (builder, `Context`, `EventHandler`), `src/gateway/bot/pipeline.rs`,
+`src/gateway/handoff.rs` (process handoff),
 `src/event.rs`, `src/cache.rs`, `src/collector.rs`. Docs: `discordrsdocs/docs/api/gateway.md`,
 `cache-and-collectors.md`.
 
@@ -169,6 +170,8 @@ handlers; handlers run afterwards from bounded lanes. Consequences:
   `Context::event_received_at()` shows how much of the 3 s window is left.
 - `start()` returns after the gateway ends plus at most `handler_shutdown_timeout` (default 5 s);
   remaining handler tasks are aborted and joined.
+- Connection setup (connect, upgrade, HELLO) is bounded by `GatewayConnectionConfig::setup_timeout`
+  (default 15 s, since 3.2.0 for every connection; see "Process handoff").
 - READY clears only that shard's guilds from the shared cache (`CacheHandle::clear_shard`).
 
 ```rust
@@ -477,6 +480,133 @@ fn with_backend(token: &str) -> ClientBuilder {
     Client::builder(token, gateway_intents::GUILD_MESSAGES).cache_backend(backend)
 }
 ```
+
+## Process handoff (3.2.0)
+
+Replace the bot's process (an update, a restart) without going offline: the old process closes
+its shards so that Discord keeps the sessions, and the new one RESUMEs them; Discord replays the
+events the old process did not hand to its handler. Prior art: twilight-gateway's
+`CloseFrame::RESUME` + `ConfigBuilder::session`. Design: `docs/design/gateway-session-handoff.md`.
+
+- `GatewayHandoff` (`new`, `request`, `is_requested`, `take_sessions`; `Clone`): register it with
+  `ClientBuilder::handoff(handoff.clone())`. After `request()` every shard stops handing events
+  to the handler, closes with code **4000** (Discord ends sessions closed with 1000/1001; a
+  normal shutdown still uses 1000), lets running handlers finish within
+  `handler_shutdown_timeout`, and records a `GatewaySession`. `start()` (or
+  `ShardSupervisor::wait()` after `spawn_shards`) then returns `Ok(())`; call `take_sessions()`
+  after that (ordered by shard id). Shards still queued for an identify wave or waiting for an
+  IDENTIFY permit stop without a session; a shard whose READY had not reached the handler yet
+  records none (the next process identifies it).
+- **Keep polling the start future after `request()`.** In `tokio::select!`, pin it, request the
+  handoff in the signal arm, then `run.await` again. Dropping it (the usual `select!` shutdown)
+  closes nothing cleanly and records no session.
+- `GatewaySession`: serde `Serialize`/`Deserialize`; `session_id()`, `sequence()`,
+  `resume_gateway_url()`, `shard()`, `intents()`, `application_id()`, `user_id()`; no public
+  constructor. JSON fields `session_id`, `sequence`, `resume_gateway_url`, `shard_id`,
+  `shard_count`, `intents`, `application_id`, `user_id` (later versions only add optional ones).
+  `Debug` shows only the first 6 characters of the id. With the token it continues the session:
+  write it to a file only the bot's user can read (0600) and **delete it as soon as it is read**
+  (resuming a snapshot twice replays events or fails).
+- `ClientBuilder::resume_sessions(sessions)`: each shard takes the session recorded for its shard
+  id if the shard count and intents match (else: warning, IDENTIFY), connects at once (no
+  identify wave, no IDENTIFY permit, none of the daily session-start budget), dials the resume
+  URL and sends RESUME. Works with `start`, `start_shards`, `start_auto_shards`, `spawn_*`; in
+  multi-process sharding each child uses it on its own.
+- Sequence semantics: the session's `sequence` is the last event the old handler was given (its
+  call started, or an interaction went to the overload hook). Queued events, events read but not
+  processed, and events read after the request are replayed (no loss). An event whose handler
+  call started is not replayed: a call aborted at the shutdown timeout loses its remaining work
+  (at most once), so give handlers enough time and finish work they spawned before exiting.
+  Interactions can overtake queued regular events, so the next process may receive an
+  interaction that was already handled (at least once; a second response fails with 40060).
+  Discord's 3 s interaction deadline keeps running during the gap.
+- Fallbacks, each with a warning, then IDENTIFY and READY as usual: INVALID_SESSION, close
+  4007/4009, a session for another shard count/shard/intents or with an empty id, and a resume URL
+  that cannot be dialed **and** a configured gateway that refuses the RESUME too (an undialable
+  URL alone is dropped and RESUME is retried on the configured gateway). Terminal closes (4004 …)
+  stay fatal.
+- **What a resumed process lacks:** no READY (the `resumed` hook runs instead) and an empty cache
+  (no GUILD_CREATE burst). Register commands and load state at startup, not in `ready`; read
+  what you need over REST. The session keeps its old presence and intents. The application id
+  comes from the session when the builder sets none (provisional: a fallback READY replaces it);
+  with `voice` the bot's user id goes to the voice manager.
+- `GatewayConnectionConfig::setup_timeout(Duration)` / `setup_timeout_duration()` (3.2.0): bound
+  on every connection's setup (connect, WebSocket upgrade, HELLO), default **15 s**. Up to 3.1.x
+  only setups holding an IDENTIFY permit were bounded; a RESUME could wait forever. An attempt that
+  runs over fails like a failed dial and retries with the 1–300 s backoff, so raise it for links
+  where setup is always slower. `Duration::MAX` (anything that overflows) means no bound. A
+  shutdown or handoff ends a setup at once either way.
+
+```rust
+// features: gateway
+use std::io::Write;
+use std::path::Path;
+use std::time::Duration;
+
+use discordrs::{
+    gateway_intents, Client, Context, EventHandler, GatewayConnectionConfig, GatewayHandoff,
+    GatewaySession,
+};
+
+struct Bot;
+
+impl EventHandler for Bot {
+    // A resumed process gets RESUMED, never READY.
+    async fn resumed(&self, _ctx: Context) {
+        println!("gateway session resumed");
+    }
+}
+
+/// Reads and deletes the previous process's sessions: resume each at most once.
+fn take_snapshot(path: &Path) -> std::io::Result<Vec<GatewaySession>> {
+    let json = match std::fs::read(path) {
+        Ok(json) => json,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(error),
+    };
+    std::fs::remove_file(path)?;
+    Ok(serde_json::from_slice(&json).unwrap_or_default())
+}
+
+/// Writes the handed-off sessions where only the bot's user can read them.
+fn write_snapshot(path: &Path, sessions: &[GatewaySession]) -> std::io::Result<()> {
+    let json = serde_json::to_vec(sessions).map_err(std::io::Error::other)?;
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+    options.open(path)?.write_all(&json)
+}
+
+/// SIGTERM, an admin command, a new binary on disk, ...
+async fn update_requested() {
+    std::future::pending::<()>().await
+}
+
+pub async fn run(token: &str, snapshot: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    // Register commands here (startup), not in `ready`.
+    let handoff = GatewayHandoff::new();
+    let client = Client::builder(token, gateway_intents::GUILDS)
+        .event_handler(Bot)
+        .gateway_config(GatewayConnectionConfig::default().setup_timeout(Duration::from_secs(30)))
+        .handler_shutdown_timeout(Duration::from_secs(3))
+        .resume_sessions(take_snapshot(snapshot)?)
+        .handoff(handoff.clone())
+        .start();
+    tokio::pin!(client);
+    tokio::select! {
+        result = &mut client => return Ok(result?),
+        _ = update_requested() => handoff.request(),
+    }
+    // Keep polling: the shards close with 4000 and running handlers finish.
+    client.await?;
+    write_snapshot(snapshot, &handoff.take_sessions())?;
+    Ok(()) // now exec the new binary, or exit and let the supervisor start it
+}
+```
+
+Test handoff against a local mock gateway (`tokio_tungstenite::accept_async`, as the crate's own
+tests do), never with a production token next to the running bot (see pitfalls).
 
 ## Channel obfuscation (from 2026-11-16)
 

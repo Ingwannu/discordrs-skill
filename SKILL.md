@@ -1,22 +1,25 @@
 ---
 name: discordrs-dev
-description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.1.x; current 3.1.1), and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, or upgrading 2.x or 3.0 code.
+description: Build, debug, review, migrate, and document Rust Discord bots and apps that use the discordrs crate (discord.rs) 3.x (written for 3.2.x; current 3.2.0), and contribute to the crate itself. Use when code or a request involves discordrs or discord.rs - gateway Client/EventHandler with shared Arc events and EventKind, typed IDs (GuildId, ChannelId), RestClient with discordrs::request bodies, MessageBuilder and Components V2 builders, slash commands, InteractionResponder, the HTTP interactions endpoint or AppFramework (EndpointReply), modals, collectors, cache and CacheBackend, permissions, formatters, webhook events, voice in DAVE (E2EE) channels and AudioPlayer, sharding, gateway session handoff between processes (GatewayHandoff, resume_sessions), or upgrading 2.x, 3.0, or 3.1 code.
 ---
 
-# discordrs-dev (discord.rs 3.1.1)
+# discordrs-dev (discord.rs 3.2.0)
 
-Crate `discordrs` (brand "discord.rs"), version 3.1.1 (on crates.io since 2026-10-23, tag `v3.1.1`;
-3.1.0 was 2026-10-22, 3.0.0 2026-10-18), MSRV 1.88, async on Tokio. 3.1.1 only fixes a gateway bug in
-3.1.0 (after Discord's Reconnect opcode the bot never reconnected; see pitfalls), so use `"3.1.1"` or
-newer. 3.1.0 is additive over 3.0.0 (working voice in DAVE
+Crate `discordrs` (brand "discord.rs"), version 3.2.0 (on crates.io since 2026-10-24, tag `v3.2.0`;
+3.1.1 was 2026-10-23, 3.1.0 2026-10-22, 3.0.0 2026-10-18), MSRV 1.88, async on Tokio. 3.2.0 is
+additive over 3.1.1: gateway session handoff between processes (restart or update without going
+offline or re-identifying) and a bound on every connection's setup (15 s by default, see pitfalls).
+3.1.1 fixed a 3.1.0 gateway bug (after Discord's Reconnect opcode the bot never reconnected), so
+use `"3.1.1"` or newer. 3.1.0 is additive over 3.0.0 (working voice in DAVE
 channels, receive-loop fixes, an endpoint `allowed_mentions` default). Source: <https://github.com/Ingwannu/discord.rs>; API docs on docs.rs;
 guide site in the repo (`discordrsdocs/`, Korean copy in `discordrsdocs/ko/`).
 
 ## First steps
 
 1. Read the project's `Cargo.toml` / `Cargo.lock` for the discordrs version and features. This
-   skill is exact for 3.1.0; on 3.0.0 everything holds except the 3.1 additions listed in
-   [migration-2x-to-3.md](references/migration-2x-to-3.md) ("3.0.0 → 3.1.0"), which also maps 2.x code.
+   skill is exact for 3.2.0; on 3.1.x everything holds except the 3.2 additions, and on 3.0.0
+   also except the 3.1 additions, both listed in [migration-2x-to-3.md](references/migration-2x-to-3.md)
+   ("3.1.x → 3.2.0", "3.0.0 → 3.1.0"), which also maps 2.x code.
    For a newer version, check its `CHANGELOG.md` before trusting details here.
 2. Pick the runtime lane (below), then open only the reference you need.
 3. Prefer typed APIs: never hand-write JSON when a `discordrs::request` type, builder, or method
@@ -112,6 +115,11 @@ Register the `/ping` command once with `RestClient::bulk_overwrite_global_comman
 - **Async traits without async-trait.** `EventHandler`, `CacheBackend`, `InteractionHandler`,
   `TypedInteractionHandler`, `CachedManager` use `async fn`; not object safe (`Arc<B>`, not
   `Arc<dyn ..>`).
+- **Process handoff (3.2).** `GatewayHandoff::request()` closes every shard with 4000 (the session
+  stays resumable) and records serde `GatewaySession`s; the next process passes them to
+  `ClientBuilder::resume_sessions` and RESUMEs: Discord replays what the old handler was not
+  given, but there is **no READY and the cache starts empty**. See
+  [gateway-events-cache.md](references/gateway-events-cache.md), "Process handoff".
 - **Safe transport.** One REST method per route; ambiguous POST/PATCH failures are not replayed;
   interaction callbacks are exempt from the bot-global rate limit; tokens are scrubbed from errors.
 
@@ -157,12 +165,19 @@ Register the `/ping` command once with `RestClient::bulk_overwrite_global_comman
   sharding, the HTTP interactions endpoint, modal/autocomplete replies.
 - Serial dispatch (default) runs one handler at a time per shard: spawn long collector waits.
 - Default cache keeps at most 1,000 guilds (`CacheConfig::max_guilds`).
+- A process resumed with `resume_sessions` gets RESUMED, never READY: register commands and load
+  state at startup (or also in `resumed`), not only in `ready`.
+- 3.2.0 bounds every gateway connection's setup (connect, upgrade, HELLO) to 15 s; a setup that is
+  always slower retries forever with 1–300 s backoff. Raise `GatewayConnectionConfig::setup_timeout`.
+- Never open a "passive" live gateway session on a production bot token: Discord can route real
+  users' interactions to it (seen 2026-10-23), and nobody answers them.
 
 ## Verify your work
 
 For a bot project: `cargo check` / `cargo clippy --all-targets -- -D warnings` with the features
 you use, and `cargo test`. Never run a bot against Discord with a real token unless the user
-asked for it. For this skill's own examples: `scripts/check-examples.sh` compiles every Rust block
+asked for it, and never with a production bot's token next to the running bot (see pitfalls); test
+gateway behaviour against a local mock gateway instead. For this skill's own examples: `scripts/check-examples.sh` compiles every Rust block
 against the published crate (see `README.md`).
 
 ## References
@@ -170,7 +185,8 @@ against the published crate (see `README.md`).
 - [api-overview.md](references/api-overview.md): features, module map, typed IDs, discriminants,
   `Patch`, bitfields/intents, permissions, formatters, webhook events, errors, API discovery.
 - [gateway-events-cache.md](references/gateway-events-cache.md): `Client`, hooks, pipeline knobs,
-  `Context`, `fetch_members`, collectors, cache, `CacheBackend` epoch contract.
+  `Context`, `fetch_members`, collectors, cache, `CacheBackend` epoch contract, process handoff
+  and `setup_timeout`.
 - [rest-requests-builders.md](references/rest-requests-builders.md): `RestClient`, request bodies,
   `RawRequest`, retries and rate limits, `allowed_mentions`, Components V2, buttons, selects,
   embeds, Component Embed.
@@ -180,6 +196,6 @@ against the published crate (see `README.md`).
   transport crypto, receive skipping, `AudioPlayer`, `VoiceFrameSink`, live voice record,
   in-process and multi-process sharding, `IdentifyGate`.
 - [migration-2x-to-3.md](references/migration-2x-to-3.md): 2.x → 3.0 map, behaviour changes,
-  and 3.0.0 → 3.1.0.
+  3.0.0 → 3.1.0, and 3.1.x → 3.2.0.
 - [contributing.md](references/contributing.md): working on the crate (code rules, docs, CI gates).
 - [pitfalls-and-status.md](references/pitfalls-and-status.md): mistakes, known limits, live tests.

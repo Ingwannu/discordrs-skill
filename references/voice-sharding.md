@@ -1,4 +1,4 @@
-# Voice and sharding (discord.rs 3.1.0)
+# Voice and sharding (discord.rs 3.2.0)
 
 ## Voice
 
@@ -320,6 +320,11 @@ async fn run<H: EventHandler>(token: &str, handler: H) -> Result<(), DiscordErro
     supervisor.wait().await // first fatal shard error, after stopping the others
 }
 ```
+
+Handoff (3.2.0): `ClientBuilder::handoff`/`resume_sessions` work with `spawn_shards` and
+`spawn_auto_shards` too: call `handoff.request()`, then `supervisor.wait().await`, then
+`take_sessions()`. Resuming shards skip the identify waves; if `/gateway/bot` recommends a new
+shard count, every session is dropped and the fleet identifies.
 
 ### Multi-process (`sharding::process`)
 

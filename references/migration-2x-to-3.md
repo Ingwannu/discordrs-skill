@@ -1,4 +1,4 @@
-# Migrating discord.rs 2.x → 3.0, and 3.0.0 → 3.1.0
+# Migrating discord.rs 2.x → 3.0, 3.0.0 → 3.1.0, and 3.1.x → 3.2.0
 
 The authoritative guide is `discordrsdocs/docs/guide/migration-3.0.md` in the crate repo (Korean:
 `discordrsdocs/ko/guide/migration-3.0.md`); every 3.0 snippet in it is compiled by
@@ -119,3 +119,19 @@ Bump to `discordrs = "3.1"`; `features = ["voice", "dave"]` still builds (`dave`
 Do not mix: on a `with_options` runtime, don't drive MLS yourself (`VoiceDaveySession`,
 `send_dave_*`); custom frame encryption via `send_opus_frame_with_dave` /
 `recv_voice_packet_with_dave` still works.
+
+## 3.1.x → 3.2.0
+
+A minor release: nothing breaks (new types and builder methods; a client without a handoff runs as
+in 3.1.1, and a normal shutdown still closes with 1000). Bump to `discordrs = "3.2"`.
+
+| Area | 3.1.x | 3.2.0 |
+|---|---|---|
+| Restart or update the bot | every new process IDENTIFYs (READY, GUILD_CREATE burst, a session-start each); `select!` drop of `start()` closed without a session | `GatewayHandoff` + `ClientBuilder::handoff` record `GatewaySession`s (close 4000); `ClientBuilder::resume_sessions` RESUMEs them, Discord replays missed events |
+| Init on READY | always ran in a new process | a resumed process gets RESUMED only: move command registration and state loading to startup (or `resumed`) |
+| Connection setup bound | 15 s only while an IDENTIFY permit was held; a RESUME could wait forever, and a shutdown sent during setup was not read | every connection, default 15 s (`GatewayConnectionConfig::setup_timeout`; `Duration::MAX` = none); shutdown and handoff are served during setup; a setup that runs over retries with 1–300 s backoff |
+| Supervisor state after RESUMED | stayed `Reconnecting` | `Running` (and `SessionEstablished` for a handed-off session) |
+| READY log line | full session id | first 6 characters |
+
+To adopt handoff, follow the example in [gateway-events-cache.md](gateway-events-cache.md),
+"Process handoff (3.2.0)".

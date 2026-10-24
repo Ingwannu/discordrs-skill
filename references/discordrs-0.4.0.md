@@ -4,7 +4,7 @@ This file is kept only so that older prompts, installed copies, and links that p
 `references/discordrs-0.4.0.md` still resolve. Its 2.0.2-era content was wrong for 3.0 (string
 `Snowflake`s, the `Event` enum, `Value` builders, `async-trait`) and has been removed.
 
-The skill now targets **discordrs 3.1.0** (3.x). Start at [`SKILL.md`](../SKILL.md), then read:
+The skill now targets **discordrs 3.2.0** (3.x). Start at [`SKILL.md`](../SKILL.md), then read:
 
 - [api-overview.md](api-overview.md): features, module map, typed IDs, discriminants, `Patch`, permissions, formatters
 - [gateway-events-cache.md](gateway-events-cache.md): `Client`, `Arc<Event>`, hooks, collectors, cache, backends

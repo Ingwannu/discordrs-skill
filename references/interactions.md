@@ -1,4 +1,4 @@
-# Interactions, commands, and modals (discord.rs 3.1.0)
+# Interactions, commands, and modals (discord.rs 3.2.0)
 
 Interactions arrive either over the gateway (`EventKind::InteractionCreate`, hook
 `interaction_create(ctx, &Interaction)`) or as signed HTTP POSTs to your endpoint (`interactions`

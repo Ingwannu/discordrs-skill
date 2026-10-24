@@ -1,7 +1,7 @@
 # discordrs-skill
 
 Agent skill `discordrs-dev` for building Discord bots with
-[discord.rs](https://github.com/Ingwannu/discord.rs) (crate `discordrs`) **3.1.1** (3.x) and for
+[discord.rs](https://github.com/Ingwannu/discord.rs) (crate `discordrs`) **3.2.0** (3.x) and for
 contributing to the crate. Works with Codex (`$discordrs-dev`, `agents/openai.yaml`) and Claude
 Code (Skill tool, `SKILL.md` frontmatter).
 
@@ -11,11 +11,11 @@ Code (Skill tool, `SKILL.md` frontmatter).
 |---|---|
 | `SKILL.md` | Entry point: lane selection, mental model, rules, pitfalls, reference index (kept under ~200 lines because agents load it whole) |
 | `references/api-overview.md` | Features, module map, typed IDs, open discriminants, `Patch`/`Nullable`, bitfields and intents, permissions, formatters, webhook events, errors, how to find an API |
-| `references/gateway-events-cache.md` | `Client`, `Arc<Event>`/`EventKind`, hook signatures, pipeline and builder knobs, `Context`, `fetch_members`, collectors, cache, `CacheBackend` epoch contract |
+| `references/gateway-events-cache.md` | `Client`, `Arc<Event>`/`EventKind`, hook signatures, pipeline and builder knobs, `Context`, `fetch_members`, collectors, cache, `CacheBackend` epoch contract, process handoff (`GatewayHandoff`, `resume_sessions`), `setup_timeout` |
 | `references/rest-requests-builders.md` | `RestClient`, `discordrs::request` bodies, `RawRequest`, retries and rate limits, `allowed_mentions`, Components V2 and other builders, Component Embed |
 | `references/interactions.md` | `Interaction`, `InteractionResponse`/`EndpointReply`, responder state machine, HTTP endpoint, `AppFramework`, modals, commands |
 | `references/voice-sharding.md` | Voice flow, transport crypto, DAVE, `AudioPlayer`, sharding (in-process and multi-process) |
-| `references/migration-2x-to-3.md` | Condensed 2.x → 3.0 map; points at the crate's compiled migration guide |
+| `references/migration-2x-to-3.md` | Condensed 2.x → 3.0 map (points at the crate's compiled migration guide), 3.0.0 → 3.1.0, 3.1.x → 3.2.0 |
 | `references/contributing.md` | Rules for changing the crate itself: lints, Decision Logs, docs en/ko, snippet harness, route manifest, perf/trybuild/feature/coverage gates |
 | `references/pitfalls-and-status.md` | Common mistakes, known limits, the 3.0 live-verification record |
 | `references/discordrs-0.4.0.md` | Compatibility stub only (see Decision Log below) |
@@ -37,8 +37,8 @@ structs, impls), not statement fragments. Code that must not be compiled (TOML, 
 "before" code) uses another fence language.
 
 ```bash
-scripts/check-examples.sh                                   # discordrs =3.1.1 from crates.io
-DISCORDRS_VERSION=3.1.1 scripts/check-examples.sh           # a later published version
+scripts/check-examples.sh                                   # discordrs =3.2.0 from crates.io
+DISCORDRS_VERSION=3.1.1 scripts/check-examples.sh           # another published version
 DISCORDRS_PATH=$HOME/discord.rs scripts/check-examples.sh   # an unpublished checkout
 ```
 
@@ -48,9 +48,9 @@ The script groups blocks by feature set into scratch crates under `/tmp/discordr
 uses no token, and contacts nothing but crates.io. A cold run takes a few minutes (dependencies,
 including `davey`/OpenMLS); later runs about 20-45 s per feature set.
 
-Result for this revision (2026-10-22, rustc 1.97.1): 7 feature sets, 35 blocks, all compiled
-against the published `discordrs =3.1.1` from crates.io (default run, no arguments). The
-previous revision compiled 34 blocks against 3.0.0 from crates.io.
+Result for this revision (2026-10-24, rustc 1.97.1): 7 feature sets, 36 blocks, all compiled
+against the published `discordrs =3.2.0` from crates.io (default run, no arguments). The
+previous revision compiled 35 blocks against 3.1.1 from crates.io.
 
 ## Updating for a new discordrs release
 

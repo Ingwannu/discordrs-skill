@@ -1,4 +1,4 @@
-# Pitfalls, known limits, and what was live-tested (discord.rs 3.1.0)
+# Pitfalls, known limits, and what was live-tested (discord.rs 3.2.0)
 
 ## Common mistakes
 
@@ -54,6 +54,16 @@ Gateway, cache, collectors
   members that decoded.
 - Two running clients mirroring into one `CacheBackend` store (not detected; the older one is
   silently superseded).
+- Initialising in `ready` (registering commands, loading state) on a client started with
+  `ClientBuilder::resume_sessions` (3.2.0): a resumed process gets RESUMED and no READY, and its
+  cache starts empty (no GUILD_CREATE burst). Initialise at startup, or also in `resumed`.
+- Dropping the start future after `GatewayHandoff::request()` (the usual `select!` shutdown): the
+  shards then close without recording sessions. Pin the future and await it again.
+- Resuming one session snapshot twice, or keeping it readable by other users: delete it once
+  read, and write it with mode 0600 (with the token it continues the session).
+- Changing intents or the shard count in an update and expecting the old session to resume: such
+  a session is dropped (with a warning) and the shard identifies; a resumed session keeps its
+  intents and presence.
 
 REST and builders
 
@@ -109,6 +119,18 @@ Voice and sharding
 
 ## Known limits and caveats
 
+- **3.2.0 bounds every connection's setup** (connect, WebSocket upgrade, HELLO) to 15 s by default
+  (`GatewayConnectionConfig::setup_timeout`). Up to 3.1.x only setups holding an IDENTIFY permit
+  were bounded, so a RESUME or an ungated IDENTIFY waited as long as it took. Now an attempt that
+  runs over fails and retries with the 1–300 s backoff: on a link where setup is always slower the
+  shard never connects. Raise the bound there; `Duration::MAX` means no bound (3.1.x behaviour).
+
+- **Never open a "passive" live gateway session with a production bot token.** On 2026-10-23 a
+  handoff check opened a second, GUILDS-only session on the production bot's token while the bot
+  ran; within 60 s a real user's INTERACTION_CREATE (s=5) arrived on the test session, which never
+  answers, so Discord appears to have routed it there instead of to the production bot. Test
+  gateway behaviour against a local mock gateway, or with a separate test application's token.
+
 - **3.1.0 gateway bug, fixed in 3.1.1 (crates.io 2026-10-23):**
   after Discord's Reconnect (opcode 7) the client built the RESUME URL from READY's path-less
   `resume_gateway_url` as `wss://host?v=10…`, Discord answered HTTP 400, and the client retried the
@@ -142,6 +164,14 @@ Voice and sharding
   with its raw JSON.
 
 ## Live verification records (docs/design/perf-baseline.md §11)
+
+2026-10-23, `feat/session-handoff` (3.2.0 before release), production bot token, GUILDS only, no
+REST writes (do not repeat: see "Never open a passive live gateway session" above):
+
+| Check | Result |
+|---|---|
+| Process 1 → handoff → process 2 | process 1: IDENTIFY, READY, handoff, `start()` returned 1 ms after the request, snapshot sequence 3; process 2: RESUME on the resume URL, RESUMED (s=4) about 0.47 s after the handoff, no READY, then heartbeat ACKs and an INTERACTION_CREATE (s=5, a real user's, unanswered) |
+| Made-up snapshot | RESUME → INVALID_SESSION → warning → IDENTIFY → READY |
 
 2026-10-13, main `5a81f20`, one production bot token (not recorded), release build of a scratch
 crate:

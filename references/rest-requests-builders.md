@@ -1,4 +1,4 @@
-# REST, request bodies, and builders (discord.rs 3.1.0)
+# REST, request bodies, and builders (discord.rs 3.2.0)
 
 No feature needed. Source: `src/http.rs` (transport), `src/http/<domain>.rs` (endpoints),
 `src/http/routes.rs` (route manifest), `src/request/` (bodies), `src/builders/`. Docs:
