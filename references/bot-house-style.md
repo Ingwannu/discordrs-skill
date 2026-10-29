@@ -192,8 +192,9 @@ every card and button and what it supports).
 - **Messages:** `/메시지` posts a card with buttons (§3). `/메시지 설정` holds per-server defaults.
   `/메시지 수정` edits a posted message in place through the same wizard, prefilled.
   - **Store the full draft of every post,** so any card the bot posts can be edited later.
-  - **Pick the target** by autocomplete (newest first, `#채널 · 제목 · 날짜`) or by a pasted link
-    or id.
+  - **Pick the target** the same way panels do: `수정` opens a modal with a select of the
+    newest 25 posts (`#채널 · 날짜`) plus an optional "link or id" input for older ones, and
+    exactly one of the two is accepted. Keep slash commands free of target options.
   - **Check ownership before reading and again before the PATCH:** fetch the channel and require
     its `guild_id` to be the interaction's guild. Refuse DMs and foreign threads. Never trust
     the guild part of a pasted link.
