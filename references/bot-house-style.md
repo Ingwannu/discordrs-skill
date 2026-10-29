@@ -95,6 +95,13 @@ every card and button and what it supports).
   `#RRGGBB` means that colour.
 - **Dividers:** one checkbox per gap (below the image, below the title, above the bottom
   buttons), all on by default.
+- **`---` in body text** (every body field, in the shared renderer): a line of three or more `-`
+  becomes a Separator styled like the card's other dividers.
+  - Lines inside ``` code fences are left alone. Edge, repeated and adjacent-to-divider lines
+    are always dropped, so no double lines appear.
+  - New input allows up to 5.
+  - Stored text can hold any number, so the renderer draws only as many as fit the component
+    budget and leaves the rest as text. A stored panel must never become unpostable.
 
 **Buttons (`features::buttons`, one module for every card):**
 - **Label.**
@@ -183,6 +190,19 @@ every card and button and what it supports).
     (default 6). The picture is wide enough for the widest glyphs.
   - Retries are limited, and every attempt is logged.
 - **Messages:** `/메시지` posts a card with buttons (§3). `/메시지 설정` holds per-server defaults.
+  `/메시지 수정` edits a posted message in place through the same wizard, prefilled.
+  - **Store the full draft of every post,** so any card the bot posts can be edited later.
+  - **Pick the target** by autocomplete (newest first, `#채널 · 제목 · 날짜`) or by a pasted link
+    or id.
+  - **Check ownership before reading and again before the PATCH:** fetch the channel and require
+    its `guild_id` to be the interaction's guild. Refuse DMs and foreign threads. Never trust
+    the guild part of a pasted link.
+  - **Messages from before the draft store:** rebuild from the bot's own V2 JSON. Accept one
+    only on positive evidence: re-rendering equals the original, it is not a panel, ticket or
+    log card, and only link buttons are present. Never decide by card shape alone; a row is
+    proof enough.
+  - **Notice-button ids:** move them to a new row on each save and delete the old row in the
+    same transaction, so a stale id can never answer with another button's text.
 - **Migrating from an older bot:**
   - An `import-<old-bot>` CLI with `--dry-run`, size limits and validation.
   - Legacy `custom_id` routing, so buttons the old bot posted keep working when the new bot runs
@@ -256,7 +276,9 @@ every card and button and what it supports).
 
 - [ ] Slash command action, routing line, `custom_id`s in `ids.rs` (≤100 chars).
 - [ ] Wizard steps with prefill and validation in Korean. Unchanged 수정 is a no-op.
-- [ ] Card uses the shared 꾸미기 step: image rule plus file upload, accent, dividers.
+- [ ] Card uses the shared 꾸미기 step: image rule plus file upload, accent, dividers; body
+      supports `---` dividers.
+- [ ] Everything posted can be edited later (stored draft, prefilled 수정).
 - [ ] Every button uses `features::buttons`: label, emoji, colour, position, extra buttons.
 - [ ] Ephemeral results follow the panel accent; errors red.
 - [ ] Component and text budgets enforced; tests for the largest config and old JSON.
