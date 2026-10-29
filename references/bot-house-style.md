@@ -120,7 +120,8 @@ every card and button and what it supports).
   - It answers only on the message recorded for it. A post whose message id can't be saved is
     deleted again.
 - **Per-feature colour UIs:**
-  - Tickets: one colour select per button.
+  - Tickets: one colour select per button up to 5 buttons; from 6, the role-vending pattern
+    (default colour plus colour lists).
   - Role vending: a default colour plus "roles to make 파랑/회색/초록/빨강" lists, so the common
     case "all blue, these red" takes one modal.
   - Verification: name, emoji and colour in its own step.
@@ -172,8 +173,13 @@ every card and button and what it supports).
 ## 6. Feature patterns
 
 - **Tickets:**
-  - A panel has 1–5 buttons. Each button has its own category, staff roles, channel name format
-    (`{번호}`, `{유저}`) and up to 4 questions.
+  - A panel has 1–21 buttons or 1–25 dropdown entries. Don't cap entry counts by a modal layout;
+    compute the button cap from the 33-component preview budget and say the trade-off in numbers
+    ("티켓 버튼 18개면 추가 버튼은 3개까지"). Each entry has its own category, staff roles,
+    channel name format (`{번호}`, `{유저}`), an optional description (dropdown) and up to 4 questions.
+  - A dropdown on a public panel (`tk:sel:<panel>`) opens directly. An entry with questions
+    answers with an ephemeral card holding that entry's button, because Discord keeps the
+    selection, so re-picking the same entry sends nothing.
   - The welcome card in the ticket channel is customisable: intro, image, accent, dividers, and
     label, emoji and colour for close, reopen, save and delete.
   - Closing swaps the close button for staff controls in one edit.
