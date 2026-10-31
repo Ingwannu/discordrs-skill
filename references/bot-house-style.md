@@ -210,6 +210,24 @@ every card and button and what it supports).
     proof enough.
   - **Notice-button ids:** move them to a new row on each save and delete the old row in the
     same transaction, so a stale id can never answer with another button's text.
+- **Spam trap (`/광고트랩`):**
+  - A channel everyone can see and write in, with maximum slowmode, plus a customisable warning
+    card (`{타임아웃}`, `{삭제기간}` placeholders).
+  - Writing there gets the author timed out (default 7 days) and their recent guild messages
+    deleted.
+  - **Intent:** needs `GUILD_MESSAGES` (not MESSAGE_CONTENT).
+  - **Finding messages:** keep a bounded in-memory index of recent messages, only for guilds with
+    a trap; bots have no search API.
+  - **Exemptions:** decide from *effective channel* permissions (overwrites included).
+  - **Before acting:** re-validate the trap and its generation.
+  - **Message types:** only user types 0 and 19 count.
+  - **Queues:** bounded, de-duplicated by message id, batched per channel. When a punish job is
+    dropped, release the author's claim.
+  - **Other channels:** delete the author's messages there only after a successful timeout, and
+    stop when the trap is deleted or changed.
+  - **Shipped emoji:** a custom emoji the card needs ships as an application emoji, uploaded once
+    at startup, with a Unicode fallback.
+  - **Intent changes:** they make the next hot update re-IDENTIFY, which is expected.
 - **Migrating from an older bot:**
   - An `import-<old-bot>` CLI with `--dry-run`, size limits and validation.
   - Legacy `custom_id` routing, so buttons the old bot posted keep working when the new bot runs
